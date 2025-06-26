@@ -342,6 +342,7 @@ mod checked {
             command_kind: CommandKind<'_>,
             arg: Argument,
         ) -> Result<V, CommandArgumentError> {
+            let is_unmetered = self.gas_charger.is_unmetered();
             let is_borrowed = self.arg_is_borrowed(&arg);
             let (input_metadata_opt, val_opt) = self.borrow_mut(arg, UsageKind::ByValue)?;
             let is_copyable = if let Some(val) = val_opt {
@@ -358,8 +359,10 @@ mod checked {
                 return Err(CommandArgumentError::InvalidValueUsage);
             }
             // Gas coin cannot be taken by value, except in TransferObjects
+            // In gasless mode, allow gas coin usage when there's no actual gas coin available
             if matches!(arg, Argument::GasCoin)
                 && !matches!(command_kind, CommandKind::TransferObjects)
+                && !is_unmetered
             {
                 return Err(CommandArgumentError::InvalidGasCoinUsage);
             }
@@ -367,7 +370,7 @@ mod checked {
             if matches!(
                 input_metadata_opt,
                 Some(InputObjectMetadata::InputObject {
-                    owner: Owner::Immutable | Owner::Shared { .. },
+                    owner: Owner::Immutable,
                     ..
                 })
             ) {

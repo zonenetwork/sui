@@ -341,6 +341,9 @@ mod checked {
     ) -> SuiResult<SuiGasStatus> {
         if tx_kind.is_system_tx() {
             Ok(SuiGasStatus::new_unmetered())
+        } else if protocol_config.gasless_transactions() {
+            // For gasless transactions, all user transactions run unmetered (PoA mode)
+            Ok(SuiGasStatus::new_unmetered())
         } else {
             let gas_status =
                 SuiGasStatus::new(gas_budget, gas_price, reference_gas_price, protocol_config)?;
@@ -625,5 +628,43 @@ mod checked {
         };
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod gasless_tests {
+    use super::checked::get_gas_status;
+    use sui_protocol_config::ProtocolConfig;
+    use sui_types::base_types::SuiAddress;
+    use sui_types::gas::SuiGasStatusAPI;
+    use sui_types::programmable_transaction_builder::ProgrammableTransactionBuilder;
+    use sui_types::transaction::{InputObjects, TransactionData, TransactionKind, TransactionExpiration};
+
+    #[test]
+    fn get_gas_status_unmetered_when_gasless() {
+        let mut config = ProtocolConfig::get_for_max_version_UNSAFE();
+        config.set_gasless_transactions_for_testing(true);
+
+        // Build a minimal programmable transaction.
+        let pt = {
+            let mut builder = ProgrammableTransactionBuilder::new();
+            builder.finish()
+        };
+        let sender = SuiAddress::random_for_testing_only();
+        let tx_kind = TransactionKind::ProgrammableTransaction(pt);
+        let tx = TransactionData::new_gasless(tx_kind, sender, TransactionExpiration::None);
+
+        let input_objects = InputObjects::new(Vec::new());
+        let gas_status = get_gas_status(
+            &input_objects,
+            &[],                         // no gas coins
+            &config,
+            0,                           // reference gas price (ignored)
+            &tx,
+        )
+        .expect("get_gas_status failed");
+
+        // In gasless mode the returned status must be unmetered.
+        assert!(gas_status.is_unmetered());
     }
 }

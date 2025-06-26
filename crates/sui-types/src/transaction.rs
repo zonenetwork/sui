@@ -1139,6 +1139,72 @@ impl ProgrammableTransaction {
             .iter()
             .filter_map(|q| q.non_system_packages_to_be_published())
     }
+
+    fn check_gasless_gascoin_usage(&self, config: &ProtocolConfig, is_gasless: bool) -> UserInputResult {
+        // Only check for GasCoin usage in gasless mode when gasless transactions are enabled
+        if !config.gasless_transactions() || !is_gasless {
+            return Ok(());
+        }
+
+        // Check all commands for Argument::GasCoin usage
+        for command in &self.commands {
+            match command {
+                Command::MoveCall(move_call) => {
+                    for arg in &move_call.arguments {
+                        if matches!(arg, Argument::GasCoin) {
+                            return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                        }
+                    }
+                }
+                Command::TransferObjects(args, dest) => {
+                    for arg in args {
+                        if matches!(arg, Argument::GasCoin) {
+                            return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                        }
+                    }
+                    if matches!(dest, Argument::GasCoin) {
+                        return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                    }
+                }
+                Command::SplitCoins(coin, amounts) => {
+                    if matches!(coin, Argument::GasCoin) {
+                        return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                    }
+                    for amount in amounts {
+                        if matches!(amount, Argument::GasCoin) {
+                            return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                        }
+                    }
+                }
+                Command::MergeCoins(target, sources) => {
+                    if matches!(target, Argument::GasCoin) {
+                        return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                    }
+                    for source in sources {
+                        if matches!(source, Argument::GasCoin) {
+                            return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                        }
+                    }
+                }
+                Command::MakeMoveVec(_, args) => {
+                    for arg in args {
+                        if matches!(arg, Argument::GasCoin) {
+                            return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                        }
+                    }
+                }
+                Command::Upgrade(_, _, _, ticket) => {
+                    if matches!(ticket, Argument::GasCoin) {
+                        return Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction);
+                    }
+                }
+                Command::Publish(_, _) => {
+                    // Publish commands don't take Argument parameters
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Display for Argument {
@@ -1748,6 +1814,26 @@ impl TransactionData {
         })
     }
 
+    /// Creates a gasless transaction for private networks with gasless_transactions enabled.
+    /// This is intended for private, permissioned PoA networks where gas fees are not required.
+    pub fn new_gasless(
+        kind: TransactionKind,
+        sender: SuiAddress,
+        expiration: TransactionExpiration,
+    ) -> Self {
+        TransactionData::V1(TransactionDataV1 {
+            kind,
+            sender,
+            gas_data: GasData {
+                payment: vec![], // No gas coins needed
+                owner: sender,   // Sender is nominal gas owner
+                price: 0,        // Zero gas price
+                budget: 0,       // Zero gas budget
+            },
+            expiration,
+        })
+    }
+
     pub fn new_move_call(
         sender: SuiAddress,
         package: ObjectID,
@@ -2085,6 +2171,13 @@ impl TransactionData {
     pub fn digest(&self) -> TransactionDigest {
         TransactionDigest::new(default_hash(self))
     }
+
+    /// Helper to check if this transaction expects gasless execution.
+    /// Returns true if the transaction has no gas payment coins and zero gas price/budget.
+    pub fn is_gasless(&self) -> bool {
+        let gas_data = self.gas_data();
+        gas_data.payment.is_empty() && gas_data.price == 0 && gas_data.budget == 0
+    }
 }
 
 #[enum_dispatch]
@@ -2218,7 +2311,9 @@ impl TransactionDataAPI for TransactionDataV1 {
     fn input_objects(&self) -> UserInputResult<Vec<InputObjectKind>> {
         let mut inputs = self.kind.input_objects()?;
 
-        if !self.kind.is_system_tx() {
+        // Only include gas objects if this is NOT a system transaction AND has gas payment
+        // This prevents gas coin references in gasless transactions
+        if !self.kind.is_system_tx() && !self.gas().is_empty() {
             inputs.extend(
                 self.gas()
                     .iter()
@@ -2233,20 +2328,29 @@ impl TransactionDataAPI for TransactionDataV1 {
     }
 
     fn validity_check(&self, config: &ProtocolConfig) -> UserInputResult {
-        fp_ensure!(!self.gas().is_empty(), UserInputError::MissingGasPayment);
-        fp_ensure!(
-            self.gas().len() < config.max_gas_payment_objects() as usize,
-            UserInputError::SizeLimitExceeded {
-                limit: "maximum number of gas payment objects".to_string(),
-                value: config.max_gas_payment_objects().to_string()
-            }
-        );
+        // Skip gas validation checks in gasless mode (for private PoA networks)
+        if !config.gasless_transactions() {
+            fp_ensure!(!self.gas().is_empty(), UserInputError::MissingGasPayment);
+            fp_ensure!(
+                self.gas().len() < config.max_gas_payment_objects() as usize,
+                UserInputError::SizeLimitExceeded {
+                    limit: "maximum number of gas payment objects".to_string(),
+                    value: config.max_gas_payment_objects().to_string()
+                }
+            );
+        }
         self.validity_check_no_gas_check(config)
     }
 
     // Keep all the logic for validity here, we need this for dry run where the gas
     // may not be provided and created "on the fly"
     fn validity_check_no_gas_check(&self, config: &ProtocolConfig) -> UserInputResult {
+        // Check for gasless-specific validations
+        if let TransactionKind::ProgrammableTransaction(pt) = self.kind() {
+            let is_gasless = config.gasless_transactions() && self.gas().is_empty();
+            pt.check_gasless_gascoin_usage(config, is_gasless)?;
+        }
+        
         self.kind().validity_check(config)?;
         self.check_sponsorship()
     }
@@ -3597,4 +3701,120 @@ impl TransactionKey {
             _ => None,
         }
     }
+}
+
+#[cfg(test)]
+mod gasless_tests {
+    use super::*;
+    use crate::programmable_transaction_builder::ProgrammableTransactionBuilder;
+
+    #[test]
+    fn gasless_transaction_validity() {
+        // Test that gasless transactions pass validity checks when flag is enabled
+        let mut config = ProtocolConfig::get_for_max_version_UNSAFE();
+        config.set_gasless_transactions_for_testing(true);
+        
+        // Create a gasless transaction
+        let mut builder = ProgrammableTransactionBuilder::new();
+        builder.transfer_object(
+            SuiAddress::random_for_testing_only(),
+            random_object_ref(),
+        ).unwrap();
+        let pt = builder.finish();
+        
+        let tx_data = TransactionData::new_gasless(
+            TransactionKind::ProgrammableTransaction(pt),
+            SuiAddress::random_for_testing_only(),
+            TransactionExpiration::None,
+        );
+        
+        assert!(tx_data.validity_check(&config).is_ok());
+    }
+
+    #[test]
+    fn gasless_transaction_fails_with_gas_coin_argument() {
+        let mut config = ProtocolConfig::get_for_max_version_UNSAFE();
+        config.set_gasless_transactions_for_testing(true);
+        
+        // Create a gasless transaction that tries to use GasCoin argument
+        let mut builder = ProgrammableTransactionBuilder::new();
+        builder.command(Command::SplitCoins(
+            Argument::GasCoin,
+            vec![Argument::Input(0)],
+        ));
+        let pt = builder.finish();
+        
+        let tx_data = TransactionData::new_gasless(
+            TransactionKind::ProgrammableTransaction(pt),
+            SuiAddress::random_for_testing_only(),
+            TransactionExpiration::None,
+        );
+        
+        let result = tx_data.validity_check(&config);
+        assert!(result.is_err());
+        if let Err(UserInputError::InvalidGasCoinUsageInGaslessTransaction) = result {
+            // Expected error
+        } else {
+            panic!("Expected InvalidGasCoinUsageInGaslessTransaction error, got: {:?}", result);
+        }
+    }
+
+    #[test]  
+    fn regular_transaction_with_gas_coin_argument_works() {
+        let mut config = ProtocolConfig::get_for_max_version_UNSAFE();
+        config.set_gasless_transactions_for_testing(true);
+        
+        // Create a regular (non-gasless) transaction that uses GasCoin argument
+        let mut builder = ProgrammableTransactionBuilder::new();
+        builder.command(Command::SplitCoins(
+            Argument::GasCoin,
+            vec![Argument::Input(0)],
+        ));
+        let pt = builder.finish();
+        
+        let tx_data = TransactionData::new_programmable(
+            SuiAddress::random_for_testing_only(),
+            vec![random_object_ref()], // Has gas payment
+            pt,
+            1000,
+            1,
+        );
+        
+        // Should work fine because it has gas payment (not gasless)
+        assert!(tx_data.validity_check(&config).is_ok());
+    }
+
+    #[test]
+    fn gasless_transaction_input_objects_excludes_gas() {
+        let mut config = ProtocolConfig::get_for_max_version_UNSAFE();
+        config.set_gasless_transactions_for_testing(true);
+        
+        let mut builder = ProgrammableTransactionBuilder::new();
+        builder.transfer_object(
+            SuiAddress::random_for_testing_only(),
+            random_object_ref(),
+        ).unwrap();
+        let pt = builder.finish();
+        
+        let tx_data = TransactionData::new_gasless(
+            TransactionKind::ProgrammableTransaction(pt),
+            SuiAddress::random_for_testing_only(),
+            TransactionExpiration::None,
+        );
+        
+        // Gas should be empty in gasless transaction
+        assert!(tx_data.gas().is_empty());
+        
+        // input_objects should not include any gas coins  
+        let input_objects = tx_data.input_objects().unwrap();
+        
+        // Should only have the transfer target object, no gas coins
+        assert_eq!(input_objects.len(), 1);
+        match &input_objects[0] {
+            InputObjectKind::ImmOrOwnedMoveObject(_) => {}, // Expected
+            _ => panic!("Expected ImmOrOwnedMoveObject for transfer target"),
+        }
+    }
+
+// ... existing code ...
 }

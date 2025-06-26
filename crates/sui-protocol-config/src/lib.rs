@@ -720,6 +720,10 @@ struct FeatureFlags {
     // Enable statically type checked ptb execution
     #[serde(skip_serializing_if = "is_false")]
     enable_ptb_execution_v2: bool,
+
+    // Enable gasless transactions - all user transactions run unmetered (for private PoA networks)
+    #[serde(skip_serializing_if = "is_false")]
+    gasless_transactions: bool,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -2069,6 +2073,10 @@ impl ProtocolConfig {
 
     pub fn enable_ptb_execution_v2(&self) -> bool {
         self.feature_flags.enable_ptb_execution_v2
+    }
+
+    pub fn gasless_transactions(&self) -> bool {
+        self.feature_flags.gasless_transactions
     }
 }
 
@@ -3946,6 +3954,10 @@ impl ProtocolConfig {
 
     pub fn set_enable_ptb_execution_v2_for_testing(&mut self, val: bool) {
         self.feature_flags.enable_ptb_execution_v2 = val;
+    }
+
+    pub fn set_gasless_transactions_for_testing(&mut self, val: bool) {
+        self.feature_flags.gasless_transactions = val;
     }
 
     pub fn push_aliased_addresses_for_testing(

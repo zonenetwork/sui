@@ -217,6 +217,9 @@ pub enum UserInputError {
     #[error("Query transactions with move function input error: {0}")]
     MoveFunctionInputError(String),
 
+    #[error("Invalid usage of gas coin in gasless transaction - gas coin arguments are not allowed when gasless transactions are enabled")]
+    InvalidGasCoinUsageInGaslessTransaction,
+
     #[error("Verified checkpoint not found for sequence number: {0}")]
     VerifiedCheckpointNotFound(CheckpointSequenceNumber),
 

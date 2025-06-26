@@ -99,6 +99,11 @@ pub mod zk_login_util;
 #[path = "./unit_tests/utils.rs"]
 pub mod utils;
 
+#[cfg(test)]
+mod unit_tests {
+    pub mod gasless_tests;
+}
+
 macro_rules! built_in_ids {
     ($($addr:ident / $id:ident = $init:expr);* $(;)?) => {
         $(

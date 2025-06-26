@@ -22,15 +22,18 @@ use sui_types::sui_system_state::SUI_SYSTEM_MODULE_NAME;
 use sui_types::transaction::{
     CallArg, ObjectArg, ProgrammableTransaction, Transaction, TransactionData,
     DEFAULT_VALIDATOR_GAS_PRICE, TEST_ONLY_GAS_UNIT_FOR_HEAVY_COMPUTATION_STORAGE,
-    TEST_ONLY_GAS_UNIT_FOR_TRANSFER,
+    TEST_ONLY_GAS_UNIT_FOR_TRANSFER, TransactionDataAPI, TransactionExpiration, TransactionKind,
+    Command, Argument,
 };
-use sui_types::SUI_RANDOMNESS_STATE_OBJECT_ID;
-use sui_types::{TypeTag, SUI_SYSTEM_PACKAGE_ID};
+use sui_types::{
+    SUI_FRAMEWORK_PACKAGE_ID, SUI_RANDOMNESS_STATE_OBJECT_ID, SUI_SYSTEM_STATE_OBJECT_ID,
+    TypeTag, SUI_SYSTEM_PACKAGE_ID,
+};
 
 pub struct TestTransactionBuilder {
     test_data: TestTransactionData,
     sender: SuiAddress,
-    gas_object: ObjectRef,
+    gas_object: Option<ObjectRef>,
     gas_price: u64,
     gas_budget: Option<u64>,
 }
@@ -40,8 +43,18 @@ impl TestTransactionBuilder {
         Self {
             test_data: TestTransactionData::Empty,
             sender,
-            gas_object,
+            gas_object: Some(gas_object),
             gas_price,
+            gas_budget: None,
+        }
+    }
+
+    pub fn new_gasless(sender: SuiAddress) -> Self {
+        Self {
+            test_data: TestTransactionData::Empty,
+            sender,
+            gas_object: None,
+            gas_price: 0,
             gas_budget: None,
         }
     }
@@ -51,7 +64,7 @@ impl TestTransactionBuilder {
     }
 
     pub fn gas_object(&self) -> ObjectRef {
-        self.gas_object
+        self.gas_object.unwrap()
     }
 
     // Use `with_type_args` below to provide type args if any
@@ -344,7 +357,7 @@ impl TestTransactionBuilder {
                 ident_str!(data.module).to_owned(),
                 ident_str!(data.function).to_owned(),
                 data.type_args,
-                self.gas_object,
+                self.gas_object.unwrap(),
                 data.args,
                 self.gas_budget
                     .unwrap_or(self.gas_price * TEST_ONLY_GAS_UNIT_FOR_HEAVY_COMPUTATION_STORAGE),
@@ -355,7 +368,7 @@ impl TestTransactionBuilder {
                 data.recipient,
                 data.object,
                 self.sender,
-                self.gas_object,
+                self.gas_object.unwrap(),
                 self.gas_budget
                     .unwrap_or(self.gas_price * TEST_ONLY_GAS_UNIT_FOR_TRANSFER),
                 self.gas_price,
@@ -364,7 +377,7 @@ impl TestTransactionBuilder {
                 data.recipient,
                 self.sender,
                 data.amount,
-                self.gas_object,
+                self.gas_object.unwrap(),
                 self.gas_budget
                     .unwrap_or(self.gas_price * TEST_ONLY_GAS_UNIT_FOR_TRANSFER),
                 self.gas_price,
@@ -373,7 +386,7 @@ impl TestTransactionBuilder {
                 self.sender,
                 data.coin,
                 data.amounts,
-                self.gas_object,
+                self.gas_object.unwrap(),
                 self.gas_budget
                     .unwrap_or(self.gas_price * TEST_ONLY_GAS_UNIT_FOR_TRANSFER),
                 self.gas_price,
@@ -397,7 +410,7 @@ impl TestTransactionBuilder {
 
                 TransactionData::new_module(
                     self.sender,
-                    self.gas_object,
+                    self.gas_object.unwrap(),
                     all_module_bytes,
                     dependencies,
                     self.gas_budget.unwrap_or(
@@ -408,7 +421,7 @@ impl TestTransactionBuilder {
             }
             TestTransactionData::Programmable(pt) => TransactionData::new_programmable(
                 self.sender,
-                vec![self.gas_object],
+                vec![self.gas_object.unwrap()],
                 pt,
                 self.gas_budget
                     .unwrap_or(self.gas_price * TEST_ONLY_GAS_UNIT_FOR_HEAVY_COMPUTATION_STORAGE),
@@ -418,6 +431,39 @@ impl TestTransactionBuilder {
                 panic!("Cannot build empty transaction");
             }
         }
+    }
+
+    pub fn build_gasless(self) -> TransactionData {
+        let kind = match self.test_data {
+            TestTransactionData::Move(data) => {
+                let args_len = data.args.len();
+                TransactionKind::ProgrammableTransaction(ProgrammableTransaction {
+                    inputs: data.args,
+                    commands: vec![Command::move_call(
+                        data.package_id,
+                        ident_str!(data.module).to_owned(),
+                        ident_str!(data.function).to_owned(),
+                        data.type_args,
+                        (0..args_len).map(|i| Argument::Input(i as u16)).collect(),
+                    )],
+                })
+            }
+            TestTransactionData::Transfer(data) => {
+                TransactionKind::ProgrammableTransaction(ProgrammableTransaction {
+                    inputs: vec![
+                        CallArg::Object(ObjectArg::ImmOrOwnedObject(data.object)),
+                        CallArg::Pure(bcs::to_bytes(&data.recipient).unwrap()),
+                    ],
+                    commands: vec![Command::TransferObjects(
+                        vec![Argument::Input(0)],
+                        Argument::Input(1),
+                    )],
+                })
+            }
+            TestTransactionData::Programmable(pt) => TransactionKind::ProgrammableTransaction(pt),
+            _ => unimplemented!(),
+        };
+        TransactionData::new_gasless(kind, self.sender, TransactionExpiration::None)
     }
 
     pub fn build_and_sign(self, signer: &dyn Signer<Signature>) -> Transaction {
@@ -701,7 +747,7 @@ pub async fn increment_counter(
             .get_one_gas_object_owned_by_address(sender)
             .await
             .unwrap()
-            .unwrap()
+            .expect("Expected to find a gas object for the sender")
     };
     let rgp = context.get_reference_gas_price().await.unwrap();
     let txn = context.sign_transaction(

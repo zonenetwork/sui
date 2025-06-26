@@ -472,6 +472,7 @@ mod checked {
             arg: Arg,
         ) -> Result<V, EitherError> {
             let shared_obj_deletion_enabled = self.protocol_config.shared_object_deletion();
+            let is_unmetered = self.gas_charger.is_unmetered();
             let is_borrowed = self.arg_is_borrowed(&arg);
             let (input_metadata_opt, val_opt) = self.borrow_mut(arg, UsageKind::ByValue)?;
             let is_copyable = if let Some(val) = val_opt {
@@ -488,7 +489,11 @@ mod checked {
                 return Err(CommandArgumentError::InvalidValueUsage.into());
             }
             // Gas coin cannot be taken by value, except in TransferObjects
-            if arg.is_gas_coin() && !matches!(command_kind, CommandKind::TransferObjects) {
+            // In gasless mode, allow gas coin usage when there's no actual gas coin available
+            if arg.is_gas_coin()
+                && !matches!(command_kind, CommandKind::TransferObjects)
+                && !is_unmetered
+            {
                 return Err(CommandArgumentError::InvalidGasCoinUsage.into());
             }
             // Immutable objects cannot be taken by value
