@@ -83,7 +83,7 @@ use sui_types::{
     sui_serde,
     transaction::{
         InputObjectKind, SenderSignedData, Transaction, TransactionData, TransactionDataAPI,
-        TransactionKind,
+        TransactionKind, TransactionExpiration,
     },
 };
 
@@ -3253,6 +3253,10 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
 
     let signer = sender.unwrap_or(signer);
 
+    // Check if the network has gasless transactions enabled
+    let protocol_config = client.read_api().get_protocol_config(None).await?;
+    let is_gasless_enabled = protocol_config.feature_flags.get("gasless_transactions").copied().unwrap_or(false);
+
     if dev_inspect {
         return execute_dev_inspect(
             context,
@@ -3280,111 +3284,164 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
         .await;
     }
 
-    let gas_budget = match gas_budget {
-        Some(gas_budget) => gas_budget,
-        None => {
-            debug!("Estimating gas budget");
-            let budget = estimate_gas_budget(
-                context,
-                signer,
-                tx_kind.clone(),
-                gas_price,
-                gas_payment.clone(),
-                gas_sponsor,
-            )
-            .await?;
-            debug!("Finished estimating gas budget");
-            budget
-        }
-    };
+    // Handle gasless transactions
+    if is_gasless_enabled && gas_payment.is_empty() {
+        debug!("Creating gasless transaction");
+        let tx_data = TransactionData::new_gasless(
+            tx_kind,
+            signer,
+            TransactionExpiration::None,
+        );
+        debug!("Finished creating gasless transaction");
 
-    let gas_payment = if !gas_payment.is_empty() {
-        gas_payment
-    } else {
-        let input_objects: Vec<_> = tx_kind
-            .input_objects()?
-            .iter()
-            .filter_map(|o| match o {
-                InputObjectKind::ImmOrOwnedMoveObject((id, _, _)) => Some(*id),
-                _ => None,
-            })
-            .collect();
-
-        let gas_payment = client
-            .transaction_builder()
-            .select_gas(
-                gas_sponsor.unwrap_or(signer),
-                None,
-                gas_budget,
-                input_objects,
-                gas_price,
-            )
-            .await?;
-
-        vec![gas_payment]
-    };
-
-    debug!("Preparing transaction data");
-    let tx_data = TransactionData::new_with_gas_coins_allow_sponsor(
-        tx_kind,
-        signer,
-        gas_payment,
-        gas_budget,
-        gas_price,
-        gas_sponsor.unwrap_or(signer),
-    );
-    debug!("Finished preparing transaction data");
-
-    if serialize_unsigned_transaction {
-        Ok(SuiClientCommandResult::SerializedUnsignedTransaction(
-            tx_data,
-        ))
-    } else if tx_digest {
-        Ok(SuiClientCommandResult::ComputeTransactionDigest(tx_data))
-    } else {
-        let mut signatures = vec![context
-            .config
-            .keystore
-            .sign_secure(&signer, &tx_data, Intent::sui_transaction())?
-            .into()];
-
-        if let Some(gas_sponsor) = gas_sponsor {
-            if gas_sponsor != signer {
-                signatures.push(
-                    context
-                        .config
-                        .keystore
-                        .sign_secure(&gas_sponsor, &tx_data, Intent::sui_transaction())?
-                        .into(),
-                );
-            }
-        }
-
-        let sender_signed_data = SenderSignedData::new(tx_data, signatures);
-        if serialize_signed_transaction {
-            Ok(SuiClientCommandResult::SerializedSignedTransaction(
-                sender_signed_data,
+        if serialize_unsigned_transaction {
+            Ok(SuiClientCommandResult::SerializedUnsignedTransaction(
+                tx_data,
             ))
+        } else if tx_digest {
+            Ok(SuiClientCommandResult::ComputeTransactionDigest(tx_data))
         } else {
-            let transaction = Transaction::new(sender_signed_data);
-            debug!("Executing transaction: {:?}", transaction);
-            let mut response = context
-                .execute_transaction_may_fail(transaction.clone())
+            let signature = context
+                .config
+                .keystore
+                .sign_secure(&signer, &tx_data, Intent::sui_transaction())?
+                .into();
+
+            let sender_signed_data = SenderSignedData::new(tx_data, vec![signature]);
+            if serialize_signed_transaction {
+                Ok(SuiClientCommandResult::SerializedSignedTransaction(
+                    sender_signed_data,
+                ))
+            } else {
+                let transaction = Transaction::new(sender_signed_data);
+                debug!("Executing gasless transaction: {:?}", transaction);
+                let mut response = context
+                    .execute_transaction_may_fail(transaction.clone())
+                    .await?;
+                debug!("Gasless transaction executed: {:?}", transaction);
+                if let Some(effects) = response.effects.as_mut() {
+                    prerender_clever_errors(effects, client.read_api()).await;
+                }
+                let effects = response.effects.as_ref().ok_or_else(|| {
+                    anyhow!("Effects from SuiTransactionBlockResult should not be empty")
+                })?;
+                if let SuiExecutionStatus::Failure { error } = effects.status() {
+                    return Err(anyhow!(
+                        "Error executing transaction '{}': {error}",
+                        response.digest
+                    ));
+                }
+                Ok(SuiClientCommandResult::TransactionBlock(response))
+            }
+        }
+    } else {
+        // Standard gas-based transaction flow
+        let gas_budget = match gas_budget {
+            Some(gas_budget) => gas_budget,
+            None => {
+                debug!("Estimating gas budget");
+                let budget = estimate_gas_budget(
+                    context,
+                    signer,
+                    tx_kind.clone(),
+                    gas_price,
+                    gas_payment.clone(),
+                    gas_sponsor,
+                )
                 .await?;
-            debug!("Transaction executed: {:?}", transaction);
-            if let Some(effects) = response.effects.as_mut() {
-                prerender_clever_errors(effects, client.read_api()).await;
+                debug!("Finished estimating gas budget");
+                budget
             }
-            let effects = response.effects.as_ref().ok_or_else(|| {
-                anyhow!("Effects from SuiTransactionBlockResult should not be empty")
-            })?;
-            if let SuiExecutionStatus::Failure { error } = effects.status() {
-                return Err(anyhow!(
-                    "Error executing transaction '{}': {error}",
-                    response.digest
-                ));
+        };
+
+        let gas_payment = if !gas_payment.is_empty() {
+            gas_payment
+        } else {
+            let input_objects: Vec<_> = tx_kind
+                .input_objects()?
+                .iter()
+                .filter_map(|o| match o {
+                    InputObjectKind::ImmOrOwnedMoveObject((id, _, _)) => Some(*id),
+                    _ => None,
+                })
+                .collect();
+
+            let gas_payment = client
+                .transaction_builder()
+                .select_gas(
+                    gas_sponsor.unwrap_or(signer),
+                    None,
+                    gas_budget,
+                    input_objects,
+                    gas_price,
+                )
+                .await?;
+
+            vec![gas_payment]
+        };
+
+        debug!("Preparing transaction data");
+        let tx_data = TransactionData::new_with_gas_coins_allow_sponsor(
+            tx_kind,
+            signer,
+            gas_payment,
+            gas_budget,
+            gas_price,
+            gas_sponsor.unwrap_or(signer),
+        );
+        debug!("Finished preparing transaction data");
+
+        if serialize_unsigned_transaction {
+            Ok(SuiClientCommandResult::SerializedUnsignedTransaction(
+                tx_data,
+            ))
+        } else if tx_digest {
+            Ok(SuiClientCommandResult::ComputeTransactionDigest(tx_data))
+        } else {
+            let mut signatures = vec![context
+                .config
+                .keystore
+                .sign_secure(&signer, &tx_data, Intent::sui_transaction())?
+                .into()];
+
+            if let Some(gas_sponsor) = gas_sponsor {
+                if gas_sponsor != signer {
+                    signatures.push(
+                        context
+                            .config
+                            .keystore
+                            .sign_secure(&gas_sponsor, &tx_data, Intent::sui_transaction())?
+                            .into(),
+                    );
+                }
             }
-            Ok(SuiClientCommandResult::TransactionBlock(response))
+
+            let sender_signed_data = SenderSignedData::new(tx_data, signatures);
+            if serialize_signed_transaction {
+                Ok(SuiClientCommandResult::SerializedSignedTransaction(
+                    sender_signed_data,
+                ))
+            } else {
+                let transaction = Transaction::new(sender_signed_data);
+                debug!("Executing transaction: {:?}", transaction);
+                let mut response = context
+                    .execute_transaction_may_fail(transaction.clone())
+                    .await?;
+                debug!("Transaction executed: {:?}", transaction);
+                if let Some(effects) = response.effects.as_mut() {
+                    prerender_clever_errors(effects, client.read_api()).await;
+                }
+                let effects = response.effects.as_ref().ok_or_else(|| {
+                    anyhow!("Effects from SuiTransactionBlockResult should not be empty")
+                })?;
+                if let SuiExecutionStatus::Failure { error } = effects.status() {
+                    return Err(anyhow!(
+                        "Error executing transaction '{}': {error}",
+                        response.digest
+                    ));
+                }
+                Ok(SuiClientCommandResult::TransactionBlock(response))
+            }
         }
     }
 }

@@ -45,6 +45,23 @@ When gasless mode is enabled, clients and SDKs should construct transactions wit
 
 The `sui-types` crate provides a helper function, `TransactionData::new_gasless(...)`, to correctly construct such a transaction.
 
+### Using the Sui CLI in Gasless Mode
+
+The Sui CLI automatically detects when a network is in gasless mode and allows commands to execute without gas coins:
+
+```bash
+# Publish a Move package without gas coins
+sui client publish
+
+# Call Move functions without gas coins  
+sui client call --package 0x123... --module counter --function increment
+
+# Transfer objects without gas coins
+sui client transfer --object-id 0x456... --to 0x789...
+```
+
+When gasless mode is enabled, you can omit the `--gas` flag from all commands. The CLI will automatically create gasless transactions.
+
 ## 4. Operational Considerations
 
 When running a gasless network, operators must be aware of the following implications:
