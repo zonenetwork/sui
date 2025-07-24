@@ -290,14 +290,14 @@ function Invoke-DockerLogin {
         return $false
     }
     # Check if username is provided
-    if ($null -eq $Username -or $Username.Length -eq 0) {
+    elseif ($null -eq $Username -or $Username.Length -eq 0) {
         Write-Error-Custom "Registry username is required for login"
         Write-Info "Please provide a username using -RegistryUsername parameter as String"
         Write-Info "Or use -SkipPush to build without pushing to registry"
         return $false
     }
     # Check if url is provided
-    if ($null -eq $RegistryUrl -or $RegistryUrl.Length -eq 0) {
+    elseif ($null -eq $RegistryUrl -or $RegistryUrl.Length -eq 0) {
         Write-Error-Custom "Registry url is required for login"
         Write-Info "Please provide a url using -RegistryUrl parameter as String"
         Write-Info "Or use -SkipPush to build without pushing to registry"
@@ -545,10 +545,26 @@ function Main {
     # Validate password is provided when needed (not for ShowServices or SkipPush)
     if (-not $SkipPush -and ($null -eq $RegistryPassword -or $RegistryPassword.Length -eq 0)) {
         Write-Error-Custom "Registry password is required when pushing to registry"
-        Write-Info "Please provide a password using -RegistryPassword parameter as SecureString"
-        Write-Info "Examples:"
-        Write-Info "  -RegistryPassword (Read-Host -AsSecureString -Prompt 'Password')"
-        Write-Info "  -RegistryPassword (ConvertTo-SecureString 'yourpassword' -AsPlainText -Force)"
+        Write-Info "Please provide a password using -RegistryPassword parameter as a String"
+        Write-Info "Example:"
+        Write-Info "  -RegistryPassword 'Password'"
+        Write-Info "Or use -SkipPush to build without pushing to registry"
+        return
+    }
+    elseif (-not $SkipPush -and ($null -eq $RegistryUrl -or $RegistryUrl.Length -eq 0)) {
+        Write-Error-Custom "Registry url is required when pushing to registry"
+        Write-Info "Please provide a url using -RegistryUrl parameter as a String"
+        Write-Info "Example:"
+        Write-Info "  -RegistryUrl 'zoneswitch.azurecr.io'"
+        Write-Info "Or use -SkipPush to build without pushing to registry"
+        return
+    }
+    elseif (-not $SkipPush -and ($null -eq $RegistryUsername -or $RegistryUsername.Length -eq 0)) {
+    
+        Write-Error-Custom "Registry username is required when pushing to registry"
+        Write-Info "Please provide a username using -RegistryUsername parameter as a String"
+        Write-Info "Example:"
+        Write-Info "  -RegistryUsername 'zoneswitch'"
         Write-Info "Or use -SkipPush to build without pushing to registry"
         return
     }
