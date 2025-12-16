@@ -570,3 +570,35 @@ mod checked {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sui_protocol_config::{ProtocolConfig, ProtocolVersion, Chain};
+    use crate::base_types::ObjectID;
+    use crate::gas::SuiGasStatusAPI;
+
+    #[test]
+    fn test_sui_gas_status_new_with_budget_zero_price() {
+        let mut config = ProtocolConfig::get_for_version(ProtocolVersion::max(), Chain::Unknown);
+        config.set_allow_zero_gas_price_for_testing(true);
+
+        let mut status = SuiGasStatus::new_with_budget(
+            0, // gas_budget
+            0, // gas_price
+            0, // reference_gas_price
+            &config
+        );
+
+        // Check if computation budget was set to max
+        assert_eq!(status.gas_budget(), 0);
+
+        // We want to check if `GasStatus` inside has a non-zero budget.
+        assert!(u64::from(status.gas_status.remaining_gas()) > 0, "Gas limit should be non-zero");
+
+        // Also check storage gas price is 0.
+        // We verify via behavior: storage cost should be 0.
+        let cost = status.track_storage_mutation(ObjectID::random(), 100, 0);
+        assert_eq!(cost, 0);
+    }
+}

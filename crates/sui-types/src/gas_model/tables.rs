@@ -594,3 +594,19 @@ pub fn initial_cost_schedule_for_unit_tests() -> move_vm_test_utils::gas_schedul
         stack_size_tiers: table.stack_size_tiers.into_iter().collect(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gas_status_new_zero_price() {
+        let cost_table = initial_cost_schedule_v1();
+        // Budget 1000 units, Price 0
+        let status = GasStatus::new(cost_table, 1000, 0, 1);
+        // Internal unit multiplier is 1000.
+        // Budget in unit should be 1000.
+        // Gas left should be 1000 * 1000 = 1,000,000.
+        assert_eq!(u64::from(status.remaining_gas()) * 1000, 1_000_000);
+    }
+}
