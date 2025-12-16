@@ -913,6 +913,10 @@ struct FeatureFlags {
     // If true, enable object funds withdraw.
     #[serde(skip_serializing_if = "is_false")]
     enable_object_funds_withdraw: bool,
+
+    // If true, allow transactions with zero gas price and empty gas payment.
+    #[serde(skip_serializing_if = "is_false")]
+    allow_zero_gas_price: bool,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -2444,6 +2448,10 @@ impl ProtocolConfig {
 
     pub fn enable_object_funds_withdraw(&self) -> bool {
         self.feature_flags.enable_object_funds_withdraw
+    }
+
+    pub fn allow_zero_gas_price(&self) -> bool {
+        self.feature_flags.allow_zero_gas_price
     }
 }
 
@@ -4342,6 +4350,7 @@ impl ProtocolConfig {
                         cfg.feature_flags.enable_object_funds_withdraw = true;
                     }
                     cfg.feature_flags.enable_multi_epoch_transaction_expiration = true;
+                    cfg.feature_flags.allow_zero_gas_price = true;
                 }
                 // Use this template when making changes:
                 //
@@ -4724,6 +4733,10 @@ impl ProtocolConfig {
 
     pub fn set_enable_object_funds_withdraw_for_testing(&mut self, val: bool) {
         self.feature_flags.enable_object_funds_withdraw = val;
+    }
+
+    pub fn set_allow_zero_gas_price_for_testing(&mut self, val: bool) {
+        self.feature_flags.allow_zero_gas_price = val;
     }
 }
 

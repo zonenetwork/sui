@@ -2705,7 +2705,10 @@ impl TransactionDataAPI for TransactionDataV1 {
                 TransactionExpiration::ValidDuring { .. } => {}
             }
         } else {
-            fp_ensure!(!self.gas().is_empty(), UserInputError::MissingGasPayment);
+            // If we allow zero gas price and the price is indeed zero, we allow empty gas payment
+            if !(config.allow_zero_gas_price() && self.gas_price() == 0) {
+                fp_ensure!(!self.gas().is_empty(), UserInputError::MissingGasPayment);
+            }
         }
 
         let gas_len = self.gas().len();

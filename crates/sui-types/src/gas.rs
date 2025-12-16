@@ -76,7 +76,9 @@ pub mod checked {
             // are unlikely to change.
 
             // gas price must be bigger or equal to reference gas price
-            if gas_price < reference_gas_price {
+            if gas_price < reference_gas_price
+                && !(config.allow_zero_gas_price() && gas_price == 0)
+            {
                 return Err(UserInputError::GasPriceUnderRGP {
                     gas_price,
                     reference_gas_price,

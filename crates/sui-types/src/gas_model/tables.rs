@@ -78,8 +78,11 @@ impl GasStatus {
     /// Charge for every operation and fail when there is no more gas to pay for operations.
     /// This is the instantiation that must be used when executing a user script.
     pub fn new(cost_table: CostTable, budget: u64, gas_price: u64, gas_model_version: u64) -> Self {
-        assert!(gas_price > 0, "gas price cannot be 0");
-        let budget_in_unit = budget / gas_price;
+        let budget_in_unit = if gas_price == 0 {
+            budget
+        } else {
+            budget / gas_price
+        };
         let gas_left = Self::to_internal_units(budget_in_unit);
         let (stack_height_current_tier_mult, stack_height_next_tier_start) =
             cost_table.stack_height_tier(0);
@@ -589,5 +592,21 @@ pub fn initial_cost_schedule_for_unit_tests() -> move_vm_test_utils::gas_schedul
         instruction_tiers: table.instruction_tiers.into_iter().collect(),
         stack_height_tiers: table.stack_height_tiers.into_iter().collect(),
         stack_size_tiers: table.stack_size_tiers.into_iter().collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gas_status_new_zero_price() {
+        let cost_table = initial_cost_schedule_v1();
+        // Budget 1000 units, Price 0
+        let status = GasStatus::new(cost_table, 1000, 0, 1);
+        // Internal unit multiplier is 1000.
+        // Budget in unit should be 1000.
+        // Gas left should be 1000 * 1000 = 1,000,000.
+        assert_eq!(u64::from(status.remaining_gas()) * 1000, 1_000_000);
     }
 }
