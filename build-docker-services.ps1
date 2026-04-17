@@ -93,7 +93,8 @@ $TargetServices = @(
     "sui-services",
 #    "sui-kv-rpc",
 #    "sui-source-service",
-    "sui-indexer"
+    "sui-indexer",
+    "sui-data-ingestion"
 )
 
 function Write-Banner {
