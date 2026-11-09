@@ -224,6 +224,7 @@ pub(super) fn recover_transaction_key(
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
+    use crate::authority::epoch_start_configuration::EpochStartConfigTrait;
     use crate::authority::test_authority_builder::TestAuthorityBuilder;
     use crate::authority::{AuthorityState, ExecutionEnv};
     use futures::poll;
