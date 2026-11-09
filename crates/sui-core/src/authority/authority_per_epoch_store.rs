@@ -1647,7 +1647,7 @@ impl AuthorityPerEpochStore {
         if let TransactionKey::Digest(digest) = key {
             Ok(Some(*digest))
         } else {
-            Ok(tables.transaction_key_to_digest.get(key).expect("db error"))
+            Ok(tables.transaction_key_to_digest.get(key)?)
         }
     }
 

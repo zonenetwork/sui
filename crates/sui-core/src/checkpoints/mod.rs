@@ -5,6 +5,7 @@ mod causal_order;
 pub mod checkpoint_executor;
 mod checkpoint_output;
 mod metrics;
+mod randomness_recovery;
 
 use crate::authority::AuthorityState;
 use crate::authority_client::{make_network_authority_clients_with_network_config, AuthorityAPI};
@@ -1063,7 +1064,8 @@ impl CheckpointBuilder {
         }
     }
 
-    /// This function first waits for ConsensusCommitHandler to finish reprocessing
+    /// First recover missing randomness keys from executed checkpoints, then wait
+    /// for ConsensusCommitHandler to finish reprocessing
     /// commits that have been processed before the last restart, if consensus_replay_waiter
     /// is supplied. Then it starts building checkpoints in a loop.
     ///
@@ -1071,6 +1073,18 @@ impl CheckpointBuilder {
     /// if slow recovery of previously built checkpoints is due to consensus replay or
     /// checkpoint building.
     async fn run(mut self, consensus_replay_waiter: Option<ReplayWaiter>) {
+        // Older binaries could execute checkpoint-supplied randomness without
+        // recording its key. Recover it before replayed roots wait on that key.
+        // This runs in the existing cancellable builder task, not node startup.
+        if let Err(error) = randomness_recovery::recover_randomness_keys(
+            &self.store,
+            &self.epoch_store,
+            self.effects_store.as_ref(),
+        )
+        .await
+        {
+            warn!(?error, "Randomness key recovery could not complete");
+        }
         if let Some(replay_waiter) = consensus_replay_waiter {
             info!("Waiting for consensus commits to replay ...");
             replay_waiter.wait_for_replay().await;
