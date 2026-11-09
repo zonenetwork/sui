@@ -10,6 +10,7 @@ use crate::authority::authority_per_epoch_store::AuthorityPerEpochStore;
 use crate::execution_cache::TransactionCacheRead;
 use anyhow::{anyhow, ensure, Context};
 use std::time::Instant;
+use sui_types::digests::TransactionDigest;
 use sui_types::messages_checkpoint::VerifiedCheckpoint;
 use sui_types::transaction::TransactionKey;
 use tracing::{info, warn};
@@ -30,18 +31,30 @@ pub(super) async fn recover_randomness_keys(
     let start = Instant::now();
     let epoch = epoch_store.epoch();
     let mut stats = RecoveryStats::default();
-    // Capture a fixed upper bound: concurrent checkpoint execution is covered by
-    // commit_certificate's insertion, and must not extend the recovery scan.
-    let Some(highest) = store.get_highest_executed_checkpoint()? else {
+    // Outputs can reach disk before the executed checkpoint watermark advances.
+    // Scan the captured synced range too, requiring matching local effects for
+    // any transaction beyond the executed watermark. This must happen before
+    // builder replay: node startup waits for the builder before starting execution.
+    let executed = store.get_highest_executed_checkpoint()?;
+    let synced = store.get_highest_synced_checkpoint()?;
+    let Some(highest) = executed
+        .iter()
+        .chain(synced.iter())
+        .max_by_key(|c| c.sequence_number())
+    else {
         return Ok(stats);
     };
     if highest.epoch() < epoch {
         return Ok(stats);
     }
-    ensure!(
-        highest.epoch() == epoch,
-        "execution watermark is in a later epoch"
-    );
+    let last = if highest.epoch() == epoch {
+        *highest.sequence_number()
+    } else {
+        store
+            .get_epoch_last_checkpoint_seq_number(epoch)?
+            .context("current epoch checkpoint boundary is unavailable")?
+    };
+    let executed_through = executed.as_ref().map(|c| *c.sequence_number());
     let first = if epoch == 0 {
         0
     } else {
@@ -51,7 +64,6 @@ pub(super) async fn recover_randomness_keys(
             .checked_add(1)
             .context("checkpoint sequence number overflow")?
     };
-    let last = *highest.sequence_number();
     ensure!(first <= last, "invalid current epoch checkpoint boundary");
     info!(epoch, first, last, "Starting randomness key recovery");
 
@@ -61,9 +73,14 @@ pub(super) async fn recover_randomness_keys(
         tokio::task::yield_now().await;
         stats.scanned += 1;
         let result = match store.get_checkpoint_by_sequence_number(sequence) {
-            Ok(Some(checkpoint)) => {
-                recover_checkpoint(store, epoch_store, transactions, &checkpoint, &mut stats)
-            }
+            Ok(Some(checkpoint)) => recover_checkpoint(
+                store,
+                epoch_store,
+                transactions,
+                &checkpoint,
+                executed_through,
+                &mut stats,
+            ),
             Ok(None) => Err(anyhow!("certified checkpoint is unavailable")),
             Err(error) => Err(error.into()),
         };
@@ -96,6 +113,7 @@ fn recover_checkpoint(
     epoch_store: &AuthorityPerEpochStore,
     transactions: &dyn TransactionCacheRead,
     checkpoint: &VerifiedCheckpoint,
+    executed_through: Option<u64>,
     stats: &mut RecoveryStats,
 ) -> anyhow::Result<()> {
     let epoch = epoch_store.epoch();
@@ -143,26 +161,68 @@ fn recover_checkpoint(
                 "randomness round absent from checkpoint summary"
             );
         }
-        match epoch_store.tx_key_to_digest(&key)? {
-            Some(existing) if existing == entry.transaction => stats.existing += 1,
-            Some(existing) => {
+        if !executed_through.is_some_and(|sequence| checkpoint.sequence_number <= sequence) {
+            let effects = transactions.multi_get_executed_effects_digests(&[entry.transaction]);
+            let Some(executed_effects) = effects[0] else {
+                // Synced data is not proof of execution. Leave future rounds alone.
+                continue;
+            };
+            ensure!(
+                executed_effects == entry.effects,
+                "executed effects differ from certified checkpoint"
+            );
+        }
+        match recover_transaction_key(epoch_store, key, transaction.digest(), &entry.transaction) {
+            Ok(false) => stats.existing += 1,
+            Ok(true) => stats.inserted += 1,
+            Err(error) => {
                 stats.skipped += 1;
-                warn!(epoch, ?round, ?existing, certified = ?entry.transaction,
-                    "Preserving conflicting randomness key mapping; recovery requires investigation");
-            }
-            None => {
-                // Use the exact certified transaction digest. The existing writer
-                // persists the mapping before notifying scheduler/builder waiters.
-                epoch_store.insert_tx_key(key, entry.transaction)?;
-                stats.inserted += 1;
+                warn!(
+                    epoch,
+                    ?round,
+                    ?error,
+                    "Unable to recover randomness key; existing mapping preserved"
+                );
             }
         }
     }
     Ok(())
 }
 
+/// Also used when old transaction effects were committed before a crash, but the
+/// checkpoint execution watermark had not yet advanced. Such transactions bypass
+/// commit_certificate; execution can also advance beyond the startup scan's bound.
+pub(super) fn recover_transaction_key(
+    epoch_store: &AuthorityPerEpochStore,
+    key: TransactionKey,
+    actual_digest: &TransactionDigest,
+    certified_digest: &TransactionDigest,
+) -> anyhow::Result<bool> {
+    ensure!(
+        actual_digest == certified_digest,
+        "checkpoint transaction digest mismatch"
+    );
+    ensure!(
+        matches!(key, TransactionKey::RandomnessRound(epoch, _) if epoch == epoch_store.epoch()),
+        "not a current-epoch randomness transaction"
+    );
+    match epoch_store.tx_key_to_digest(&key)? {
+        Some(existing) => {
+            ensure!(
+                existing == *certified_digest,
+                "conflicting randomness key mapping"
+            );
+            Ok(false)
+        }
+        None => {
+            epoch_store.insert_tx_key(key, *certified_digest)?;
+            Ok(true)
+        }
+    }
+}
+
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::authority::test_authority_builder::TestAuthorityBuilder;
     use crate::authority::{AuthorityState, ExecutionEnv};
@@ -183,7 +243,7 @@ mod tests {
     use sui_types::transaction::VerifiedTransaction;
     use typed_store::Map;
 
-    async fn authority() -> Arc<AuthorityState> {
+    pub(in crate::checkpoints) async fn authority() -> Arc<AuthorityState> {
         TestAuthorityBuilder::new()
             .with_protocol_config(ProtocolConfig::get_for_version(
                 ProtocolVersion::new(87),
@@ -193,7 +253,10 @@ mod tests {
             .await
     }
 
-    fn randomness(state: &AuthorityState, round: u64) -> VerifiedTransaction {
+    pub(in crate::checkpoints) fn randomness(
+        state: &AuthorityState,
+        round: u64,
+    ) -> VerifiedTransaction {
         let epoch_store = state.epoch_store_for_testing();
         VerifiedTransaction::new_randomness_state_update(
             epoch_store.epoch(),
@@ -208,17 +271,35 @@ mod tests {
 
     // Recovery tests use signed checkpoint fixtures and real RocksDB/cache reads.
     // Execution and live restart behavior are distinct tests, not implied here.
-    fn checkpoint(
+    pub(in crate::checkpoints) fn checkpoint(
         state: &AuthorityState,
         store: &CheckpointStore,
         sequence: u64,
         transaction: &VerifiedTransaction,
         persist_transaction: bool,
     ) -> VerifiedCheckpoint {
+        checkpoint_with_effects(
+            state,
+            store,
+            sequence,
+            transaction,
+            persist_transaction,
+            TransactionEffectsDigest::random(),
+        )
+    }
+
+    pub(in crate::checkpoints) fn checkpoint_with_effects(
+        state: &AuthorityState,
+        store: &CheckpointStore,
+        sequence: u64,
+        transaction: &VerifiedTransaction,
+        persist_transaction: bool,
+        effects: TransactionEffectsDigest,
+    ) -> VerifiedCheckpoint {
         let epoch_store = state.epoch_store_for_testing();
         let contents = CheckpointContents::new_with_digests_only_for_tests([ExecutionDigests {
             transaction: *transaction.digest(),
-            effects: TransactionEffectsDigest::random(),
+            effects,
         }]);
         let rounds = match transaction.key() {
             TransactionKey::RandomnessRound(_, round) => vec![round],
@@ -239,7 +320,7 @@ mod tests {
         let signed = SignedCheckpointSummary::new(
             epoch_store.epoch(),
             summary.clone(),
-            state.secret.as_ref(),
+            state.secret.as_ref().get_ref(),
             state.name,
         );
         let signature = AuthorityStrongQuorumSignInfo::new_from_auth_sign_infos(
@@ -347,7 +428,8 @@ mod tests {
         let executed = randomness(&state, 0);
         let future = randomness(&state, 1);
         let certified = checkpoint(&state, &store, 0, &executed, true);
-        checkpoint(&state, &store, 1, &future, true);
+        let synced = checkpoint(&state, &store, 1, &future, true);
+        store.update_highest_synced_checkpoint(&synced).unwrap();
         store
             .update_highest_executed_checkpoint(&certified)
             .unwrap();
@@ -360,7 +442,7 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(stats.scanned, 1);
+        assert_eq!(stats.scanned, 2);
         assert_eq!(stats.inserted, 0);
         assert_eq!(stats.skipped, 1);
         assert_eq!(

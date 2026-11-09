@@ -56,6 +56,9 @@ mod data_ingestion_handler;
 pub mod metrics;
 pub(crate) mod utils;
 
+#[cfg(test)]
+mod randomness_recovery_tests;
+
 use data_ingestion_handler::{load_checkpoint_data, store_checkpoint_locally};
 use metrics::CheckpointExecutorMetrics;
 use utils::*;
@@ -782,6 +785,24 @@ impl CheckpointExecutor {
                             executed_fx_digest,
                             &*self.transaction_cache_reader,
                         );
+                        // An old binary may have persisted effects just before
+                        // advancing its checkpoint watermark. Startup recovery
+                        // cannot see that checkpoint, and this branch will not
+                        // call commit_certificate again to publish the key.
+                        if let Some(key) = txn.non_digest_key() {
+                            if let Err(error) = super::randomness_recovery::recover_transaction_key(
+                                &self.epoch_store,
+                                key,
+                                txn.digest(),
+                                tx_digest,
+                            ) {
+                                warn!(
+                                    ?tx_digest,
+                                    ?error,
+                                    "Unable to recover executed randomness key"
+                                );
+                            }
+                        }
                         None
                     } else if txn.transaction_data().is_end_of_epoch_tx() {
                         None

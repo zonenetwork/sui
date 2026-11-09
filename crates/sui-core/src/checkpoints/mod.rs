@@ -1075,7 +1075,7 @@ impl CheckpointBuilder {
     async fn run(mut self, consensus_replay_waiter: Option<ReplayWaiter>) {
         // Older binaries could execute checkpoint-supplied randomness without
         // recording its key. Recover it before replayed roots wait on that key.
-        // This runs in the existing cancellable builder task, not node startup.
+        // The existing builder task owner can cancel this during shutdown.
         if let Err(error) = randomness_recovery::recover_randomness_keys(
             &self.store,
             &self.epoch_store,

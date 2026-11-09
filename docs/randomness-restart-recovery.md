@@ -86,13 +86,19 @@ The exact missing key on the affected production validator is still unobserved.
   instead of panicking inside the existing lookup helper.
 - `checkpoints/mod.rs`: run recovery at the start of the existing builder task,
   before waiting for consensus replay. Its existing task owner handles shutdown.
-- `checkpoints/randomness_recovery.rs`: capture the current epoch and executed
-  upper bound, scan certified summaries, skip summaries with no randomness,
+- `checkpoints/randomness_recovery.rs`: capture the current epoch and synced/
+  executed upper bounds, scan certified summaries, skip summaries with no randomness,
   validate content/transaction identity, preserve existing mappings, and insert
   missing mappings using the existing persistent writer and waiter notification.
   Missing/pruned/mismatched entries are counted and warned about. Every checkpoint
   iteration yields; the scan uses synchronous RocksDB calls and is not a claim of
   nonblocking I/O.
+- Persisted outputs can precede the executed checkpoint watermark. For the synced
+  range above that marker, recover only transactions with local executed effects
+  matching the certified checkpoint. Run this before builder replay, because node
+  startup waits for the builder before starting the checkpoint executor.
+- `checkpoints/checkpoint_executor/mod.rs`: also repair keys in the already-executed
+  transaction path, covering execution that advances beyond the startup snapshot.
 
 ## Verification status
 
@@ -107,7 +113,8 @@ The exact missing key on the affected production validator is still unobserved.
   absent mapping parks a waiter and recovery wakes it; repeated recovery inserts
   nothing; conflicting mappings and the execution watermark are preserved;
   missing transactions, pruned contents, foreign-epoch transactions and wrong
-  transaction digests are handled without replacing the mapping.
+  transaction digests are handled without replacing the mapping; committed effects
+  ahead of the checkpoint watermark are recovered before replay and on executor retry.
 - Live unpatched restart reproduction, patched restart and halted-network
   recovery, rebuilt checkpoint digest equality, healthy-node epoch transition,
   recovery timing and independent candidate assessment: pending.
@@ -115,8 +122,9 @@ The exact missing key on the affected production validator is still unobserved.
 ## Qualification and operator considerations
 
 The recovery scan starts before the builder's consensus-replay wait and snapshots
-the highest executed checkpoint at that time. New executions are covered by the
-execution-commit insertion. Scan completion logs `scanned`, `inserted`, `existing`,
+the highest synced/executed checkpoints, capped at the current epoch boundary.
+Unexecuted synced transactions are not recovered. New executions are covered by
+the execution-commit insertion and the already-executed path. Scan completion logs `scanned`, `inserted`, `existing`,
 `skipped` and `elapsed_ms`; a nonzero skipped count requires inspection and must
 not be described as successful recovery. A conflicting existing mapping is
 preserved and reported, never silently replaced.

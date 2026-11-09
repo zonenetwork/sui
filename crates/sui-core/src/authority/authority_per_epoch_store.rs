@@ -1651,6 +1651,12 @@ impl AuthorityPerEpochStore {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn remove_tx_key_for_testing(&self, key: &TransactionKey) -> SuiResult {
+        self.tables()?.transaction_key_to_digest.remove(key)?;
+        Ok(())
+    }
+
     pub fn revert_executed_transaction(&self, tx_digest: &TransactionDigest) -> SuiResult {
         self.consensus_output_cache
             .remove_reverted_transaction(tx_digest);
