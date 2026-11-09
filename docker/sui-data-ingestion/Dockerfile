@@ -14,7 +14,7 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update && apt-get install -y cmake clang
+    && apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y cmake clang
 
 COPY Cargo.toml Cargo.lock ./
 COPY consensus consensus
@@ -33,8 +33,8 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get install -y ca-certificates \
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 ARG PROFILE=release
 WORKDIR "$WORKDIR/sui"

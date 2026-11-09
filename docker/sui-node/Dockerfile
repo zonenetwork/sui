@@ -12,8 +12,8 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get install -y cmake clang ca-certificates
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y cmake clang ca-certificates
 
 COPY Cargo.toml Cargo.lock ./
 COPY consensus consensus
@@ -33,8 +33,8 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get install -y libjemalloc-dev ca-certificates curl
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y libjemalloc-dev ca-certificates curl
 ENV LD_PRELOAD /usr/lib/x86_64-linux-gnu/libjemalloc.so
 ARG PROFILE=release
 WORKDIR "$WORKDIR/sui"

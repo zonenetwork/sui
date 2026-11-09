@@ -12,7 +12,7 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update && apt-get install -y cmake clang libpq5 libpq-dev
+    && apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y cmake clang libpq5 libpq-dev
 
 COPY Cargo.toml Cargo.lock ./
 COPY consensus consensus
@@ -43,7 +43,7 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update && apt-get install -y libpq5 libpq-dev ca-certificates git
+    && apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y libpq5 libpq-dev ca-certificates git
 
 COPY --from=builder /sui/target/release/stress /usr/local/bin
 COPY --from=builder /sui/target/release/sui-faucet /usr/local/bin

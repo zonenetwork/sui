@@ -7,7 +7,7 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt-get update && apt-get install -y cmake clang libpq5 ca-certificates libpq-dev postgresql
+    && apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y cmake clang libpq5 ca-certificates libpq-dev postgresql
 
 # Build application
 FROM chef AS builder 
@@ -37,7 +37,7 @@ RUN sed -i \
         -e 's|http://|https://|g' \
         -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
         /etc/apt/sources.list \
-    && apt update && apt install -y libpq5 libpq-dev postgresql
+    && apt -o Acquire::Retries=5 update && apt -o Acquire::Retries=5 install -y libpq5 libpq-dev postgresql
 
 ARG BUILD_DATE
 ARG GIT_REVISION
