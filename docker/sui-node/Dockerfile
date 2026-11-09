@@ -7,7 +7,11 @@ ARG PROFILE=release
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
 WORKDIR "$WORKDIR/sui"
-RUN sed -i 's|http://|https://|g' /etc/apt/sources.list \
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y cmake clang ca-certificates
 
@@ -24,7 +28,11 @@ FROM debian:bullseye-slim AS runtime
 # Use jemalloc as memory allocator
 # Bootstrap HTTPS trust before the slim image installs its CA package.
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-RUN sed -i 's|http://|https://|g' /etc/apt/sources.list \
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y libjemalloc-dev ca-certificates curl
 ENV LD_PRELOAD /usr/lib/x86_64-linux-gnu/libjemalloc.so

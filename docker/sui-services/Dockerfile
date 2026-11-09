@@ -2,7 +2,12 @@ FROM rust:1.85-bullseye  AS chef
 WORKDIR sui
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
-RUN apt-get update && apt-get install -y cmake clang libpq5 ca-certificates libpq-dev postgresql
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt-get update && apt-get install -y cmake clang libpq5 ca-certificates libpq-dev postgresql
 
 # Build application
 FROM chef AS builder 
@@ -21,11 +26,18 @@ RUN find /sui/target/release/ -maxdepth 1 -type f -executable -print | xargs cp 
 
 # Production Image
 FROM debian:bullseye-slim AS runtime
+# Bootstrap HTTPS trust before the slim image installs its CA package.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 WORKDIR sui
 COPY --from=builder /sui/bin /tmp/sui-bin
 RUN find /tmp/sui-bin -maxdepth 1 -type f -executable -print | xargs cp -t /usr/local/bin/
 RUN rm -rf /tmp/sui-bin
-RUN apt update && apt install -y libpq5 libpq-dev postgresql
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt update && apt install -y libpq5 libpq-dev postgresql
 
 ARG BUILD_DATE
 ARG GIT_REVISION

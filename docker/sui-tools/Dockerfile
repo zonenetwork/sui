@@ -7,7 +7,12 @@ ARG PROFILE=release
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
 WORKDIR "$WORKDIR/sui"
-RUN apt-get update && apt-get install -y cmake clang libpq5 libpq-dev
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt-get update && apt-get install -y cmake clang libpq5 libpq-dev
 
 COPY Cargo.toml Cargo.lock ./
 COPY consensus consensus
@@ -28,10 +33,17 @@ RUN cargo build --profile ${PROFILE} \
 
 # Production Image
 FROM debian:bullseye-slim AS runtime
+# Bootstrap HTTPS trust before the slim image installs its CA package.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 WORKDIR "$WORKDIR/sui"
 
 # sui-tool needs libpq at runtime and uses git when fetching move dependencies during build
-RUN apt-get update && apt-get install -y libpq5 libpq-dev ca-certificates git
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt-get update && apt-get install -y libpq5 libpq-dev ca-certificates git
 
 COPY --from=builder /sui/target/release/stress /usr/local/bin
 COPY --from=builder /sui/target/release/sui-faucet /usr/local/bin

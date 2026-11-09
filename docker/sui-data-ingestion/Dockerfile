@@ -9,7 +9,12 @@ ARG PROFILE=release
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
 WORKDIR "$WORKDIR/sui"
-RUN apt-get update && apt-get install -y cmake clang
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt-get update && apt-get install -y cmake clang
 
 COPY Cargo.toml Cargo.lock ./
 COPY consensus consensus
@@ -21,7 +26,14 @@ RUN cargo build --profile ${PROFILE} --bin checkpoint_bucket_writer
 
 # Production Image
 FROM debian:bullseye-slim AS runtime
-RUN apt-get update \
+# Bootstrap HTTPS trust before the slim image installs its CA package.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# Bullseye security packages are retained in Debian's official archive.
+RUN sed -i \
+        -e 's|http://|https://|g' \
+        -e 's|https://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' \
+        /etc/apt/sources.list \
+    && apt-get update \
     && apt-get install -y ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 ARG PROFILE=release
