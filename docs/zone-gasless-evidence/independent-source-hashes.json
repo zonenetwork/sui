@@ -1,0 +1,246 @@
+{
+  "all_raw_match": false,
+  "all_lf_normalized_match": true,
+  "files": [
+    {
+      "path": "crates/sui-core/src/authority.rs",
+      "review_sha256": "0475454c8884978efd6530d00e1c88e0edb0ed0a81a5505553fa6bd1022edf43",
+      "compiled_source_sha256": "a95895adbb42b257d9af71843889d49fb53193542be3c4c94ed658749e052201",
+      "raw_matches": false,
+      "review_crlf_count": 5266,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "a95895adbb42b257d9af71843889d49fb53193542be3c4c94ed658749e052201",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-core/src/transaction_driver/mod.rs",
+      "review_sha256": "75308d94a79be17aa940d81aed6a0e082962708fd09262f6235786b71d055377",
+      "compiled_source_sha256": "a5f066256fdb4c025a010ae70a01612208152540d7576ce6e215345b88bd1aa7",
+      "raw_matches": false,
+      "review_crlf_count": 579,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "a5f066256fdb4c025a010ae70a01612208152540d7576ce6e215345b88bd1aa7",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-core/src/transaction_orchestrator.rs",
+      "review_sha256": "68ab566745711086f03ccde7ef20ac28dcaedc109565d3b1570b4d061ba57548",
+      "compiled_source_sha256": "a08c0fd8ca77737bd8deeb4cb278b2dc7aff9fed12f9c5f53247a2f68b9510db",
+      "raw_matches": false,
+      "review_crlf_count": 1238,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "a08c0fd8ca77737bd8deeb4cb278b2dc7aff9fed12f9c5f53247a2f68b9510db",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-core/src/transaction_simulation.rs",
+      "review_sha256": "835257674229db682cc6710950203d8254af7923d4356fa10165b44e2752e0de",
+      "compiled_source_sha256": "b23c183decc909a41d99157ce648acfaf94d4285b5646aa9abb40e281ae4bea3",
+      "raw_matches": false,
+      "review_crlf_count": 320,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "b23c183decc909a41d99157ce648acfaf94d4285b5646aa9abb40e281ae4bea3",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-e2e-tests/Cargo.toml",
+      "review_sha256": "865bef50d044fde79b78a0f7b155126737a370c832b5e6d3a35966c533483fa2",
+      "compiled_source_sha256": "130766a8238a70148d1cc68dd44aea5f5b8355dbcf8de3eb19689dd1eeab0c05",
+      "raw_matches": false,
+      "review_crlf_count": 82,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "130766a8238a70148d1cc68dd44aea5f5b8355dbcf8de3eb19689dd1eeab0c05",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-e2e-tests/tests/data/zone_gasless/Move.toml",
+      "review_sha256": "3d092fa3b29f4cca46a0ca7e9be4ef3fdf2f35aac16a3d78095138c5031efb6b",
+      "compiled_source_sha256": "049771c59a4b535e750049e98193556edba23c0c5ebbd6b52c21755a4a02644f",
+      "raw_matches": false,
+      "review_crlf_count": 9,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "049771c59a4b535e750049e98193556edba23c0c5ebbd6b52c21755a4a02644f",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-e2e-tests/tests/data/zone_gasless/sources/workload.move",
+      "review_sha256": "fa6ab6fcde0fb75e2290197a6e5591ea8e7c1b2be356d752657ec14d71e498f7",
+      "compiled_source_sha256": "e865edaae9cce65fb2386bfd094400e5a1313e196542c2678c894d9d6e40d9a6",
+      "raw_matches": false,
+      "review_crlf_count": 56,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "e865edaae9cce65fb2386bfd094400e5a1313e196542c2678c894d9d6e40d9a6",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-e2e-tests/tests/zone_gasless_tests.rs",
+      "review_sha256": "dd8a2899125c695ea4eae81fbc9e5e0e57ac4fff58ab6a9b737c86367138edf9",
+      "compiled_source_sha256": "d2aab4854294e1e8435109f05a4ef18789b8a145bbfc6587db8c4eb6aa524acc",
+      "raw_matches": false,
+      "review_crlf_count": 663,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "d2aab4854294e1e8435109f05a4ef18789b8a145bbfc6587db8c4eb6aa524acc",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-protocol-config/Cargo.toml",
+      "review_sha256": "7df811b5a76f1d12d284b052fae7f0762208be9c0bfb818a0492a618ed6a80f9",
+      "compiled_source_sha256": "53f82d8b37e85e9d9f00407c39f6636e4050167fc6e81747ba57f0d9fb2b03da",
+      "raw_matches": false,
+      "review_crlf_count": 36,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "53f82d8b37e85e9d9f00407c39f6636e4050167fc6e81747ba57f0d9fb2b03da",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-protocol-config/src/lib.rs",
+      "review_sha256": "577319e8d4a7a2721b51ee487a87972926ed7b8bbdb3ac8796840c4ac835c8f6",
+      "compiled_source_sha256": "3600cbe9cbaec8b73aa6f14f9b246ad3a0336498f8c36cb5fd82ae09bf552c69",
+      "raw_matches": false,
+      "review_crlf_count": 5895,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "3600cbe9cbaec8b73aa6f14f9b246ad3a0336498f8c36cb5fd82ae09bf552c69",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-protocol-config/src/snapshots/sui_protocol_config__test__Mainnet_version_144.snap",
+      "review_sha256": "6f31a5327c0b8329844c66bfe25c5d251486404a4317c385be1004ea04b30458",
+      "compiled_source_sha256": "555d8fdfed5c26f19f4931ef312e24970bb32301704267e52cccebaf1c87b5af",
+      "raw_matches": false,
+      "review_crlf_count": 1317,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "555d8fdfed5c26f19f4931ef312e24970bb32301704267e52cccebaf1c87b5af",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-protocol-config/src/snapshots/sui_protocol_config__test__Testnet_version_144.snap",
+      "review_sha256": "0a85de7d87cdd86fd4e17664930207e0a36c0e30c0be2e743b7fc47feaed1c7e",
+      "compiled_source_sha256": "c1d3291a82bea6f63f21fbeb046b88d1dc825dd44ae2994c65beaee591def1ec",
+      "raw_matches": false,
+      "review_crlf_count": 704,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "c1d3291a82bea6f63f21fbeb046b88d1dc825dd44ae2994c65beaee591def1ec",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-protocol-config/src/snapshots/sui_protocol_config__test__version_144.snap",
+      "review_sha256": "6d27a5235daf0c77f14116a6f38277042dc43fca928793b595dc96bc699dd068",
+      "compiled_source_sha256": "87cc0cb2489ceb41d248f4392c687182ec1aeb78814efdb7f1c9a6086ea571be",
+      "raw_matches": false,
+      "review_crlf_count": 580,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "87cc0cb2489ceb41d248f4392c687182ec1aeb78814efdb7f1c9a6086ea571be",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-rpc-api/src/grpc/v2/transaction_execution_service/simulate/mod.rs",
+      "review_sha256": "ca42148219ed2c2eb8f9115306c83f5ede336067da39c4cf04a3e65aa57520b7",
+      "compiled_source_sha256": "d3f9425c14d2583b3ca55232dece11ba4fa50514371e82639212e1a3670c68a4",
+      "raw_matches": false,
+      "review_crlf_count": 1100,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "d3f9425c14d2583b3ca55232dece11ba4fa50514371e82639212e1a3670c68a4",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-rpc-api/src/grpc/v2/transaction_execution_service/simulate/resolve/mod.rs",
+      "review_sha256": "9832c09875d5fd461b6bbf17870d2832c7194019f16442953821fcdefca371cc",
+      "compiled_source_sha256": "a350710877eb1b0d822058b61da99c9a6bf864464572c48c8f69443bcf332863",
+      "raw_matches": false,
+      "review_crlf_count": 1092,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "a350710877eb1b0d822058b61da99c9a6bf864464572c48c8f69443bcf332863",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-transaction-checks/src/lib.rs",
+      "review_sha256": "97fe009fc8da4d088b1c6d06f99c893edc25faa1c50d042edb65236e4fb28d88",
+      "compiled_source_sha256": "9d5f2559c91ebc250645d721c79dd04446eb32cb53533511ac33b5bba2e4ad68",
+      "raw_matches": false,
+      "review_crlf_count": 779,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "9d5f2559c91ebc250645d721c79dd04446eb32cb53533511ac33b5bba2e4ad68",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-types/src/gas.rs",
+      "review_sha256": "ed1a7bbff2ecab07e98be8422274aeec59ddff88369a0de8727bab25aecf1c4c",
+      "compiled_source_sha256": "3a342eb445adab989e73a4c5538b561ef166765349fd793070f66718be2a92b0",
+      "raw_matches": false,
+      "review_crlf_count": 392,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "3a342eb445adab989e73a4c5538b561ef166765349fd793070f66718be2a92b0",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-types/src/transaction.rs",
+      "review_sha256": "3325b670c760275c6dad53e28fd1c0e64bfc35ac0e027160c401e27554b63c07",
+      "compiled_source_sha256": "9d46fd514e4b078ef54627f1ffc3e268523b1a8d9f218f5b00e0970bde1984a9",
+      "raw_matches": false,
+      "review_crlf_count": 5750,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "9d46fd514e4b078ef54627f1ffc3e268523b1a8d9f218f5b00e0970bde1984a9",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui-types/tests/zone_gasless.rs",
+      "review_sha256": "cf3a14c73ca22e2e76f9f1d6e152ecdfc00f96c282182e7c791015e8fdc2affc",
+      "compiled_source_sha256": "affc401e26810f248bf9f1de1c6af89af253a1c8d256c36c900ba65d07b304df",
+      "raw_matches": false,
+      "review_crlf_count": 139,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "affc401e26810f248bf9f1de1c6af89af253a1c8d256c36c900ba65d07b304df",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "crates/sui/src/client_commands.rs",
+      "review_sha256": "82e798c13a33b9901ca843a045a6e391d3f0685cac4013d8dd6e49c7d50d26f0",
+      "compiled_source_sha256": "4ad8fb8c91e1e12abd58966ac7b67337be7f68cf20d43e8448d25175eb7d1a10",
+      "raw_matches": false,
+      "review_crlf_count": 4736,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "4ad8fb8c91e1e12abd58966ac7b67337be7f68cf20d43e8448d25175eb7d1a10",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "docker/sui-node/Dockerfile",
+      "review_sha256": "b6336331232bc69d8e42a1090ec1cd4fccdce28e6615bb51b2079e4ce47c7b16",
+      "compiled_source_sha256": "b6336331232bc69d8e42a1090ec1cd4fccdce28e6615bb51b2079e4ce47c7b16",
+      "raw_matches": true,
+      "review_crlf_count": 43,
+      "compiled_crlf_count": 43,
+      "normalized_sha256": "d1dcc6b59972d529ca1b3dca18d65284bf53c12fdad47c5c696c612654137045",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "docker/sui-tools/Dockerfile",
+      "review_sha256": "a684c504a858ea69df46f5217335f30ef27a77a46592f007d89b62775c48d318",
+      "compiled_source_sha256": "a684c504a858ea69df46f5217335f30ef27a77a46592f007d89b62775c48d318",
+      "raw_matches": true,
+      "review_crlf_count": 65,
+      "compiled_crlf_count": 65,
+      "normalized_sha256": "812a735d662244b5b4ee565ae4e43e0fe88bb1bd39763f456c394c8ad684bf46",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "sui-execution/latest/sui-adapter/src/execution_engine.rs",
+      "review_sha256": "af61ffc114d61c139cc3569028c09f9be083f133ad921e358e8dde376a7c3f63",
+      "compiled_source_sha256": "b4de7281ca07bd0872557e44f2157c90f316329b616f57c5fbc2b0a35de026c1",
+      "raw_matches": false,
+      "review_crlf_count": 1828,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "b4de7281ca07bd0872557e44f2157c90f316329b616f57c5fbc2b0a35de026c1",
+      "lf_normalized_matches": true
+    },
+    {
+      "path": "sui-execution/latest/sui-adapter/src/gas_charger.rs",
+      "review_sha256": "a6a62092f875f3a877966b3db308121b36109a3b3d4039aeda526914e07a477f",
+      "compiled_source_sha256": "6e08104cd53995fcbf0924577038723b8c2d91cb550dc9f4ff528d9a8e74f53f",
+      "raw_matches": false,
+      "review_crlf_count": 677,
+      "compiled_crlf_count": 0,
+      "normalized_sha256": "6e08104cd53995fcbf0924577038723b8c2d91cb550dc9f4ff528d9a8e74f53f",
+      "lf_normalized_matches": true
+    }
+  ]
+}

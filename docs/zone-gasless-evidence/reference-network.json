@@ -1,0 +1,80 @@
+{
+  "reference_revision": "50ba71a663770e37da34234cbb36f52eb61f38e2",
+  "binary_sha256": "27c03dbfa4d9f3181e515a1d4aa8b046fb7f82ef2826674d974f3b7473379b92",
+  "checks": [
+    {
+      "check": "reference_publish_zero_sui",
+      "digest": "BDQQLovxjQihvviYkbGerbt24ZW2kgd4XQtprd8QqTo4",
+      "epoch": "0",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "reference_compute_heavy_payment",
+      "digest": "AP3Nfqt3UMCtPEyQYfdmXZ7ZFnBBc7LxbPahQH5auo4u",
+      "epoch": "0",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "reference_duplicate_abort",
+      "digest": null,
+      "epoch": "1",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "failure",
+        "error": "1st command aborted within function '0xf9875aa6b5f02c64a811a71fb95907f991f99523bf9555053518ada7264b0b66::workload::pay' at instruction 10 with code 1"
+      }
+    },
+    {
+      "check": "reference_atomic_abort",
+      "digest": null,
+      "epoch": "1",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "failure",
+        "error": "1st command aborted within function '0xf9875aa6b5f02c64a811a71fb95907f991f99523bf9555053518ada7264b0b66::workload::abort_after_write' at instruction 5 with code 7"
+      }
+    },
+    {
+      "check": "reference_epoch_shared_call",
+      "digest": "5z9FXA4wjV2KkpXGuBZMjMFLRhJAC2xhwupYrxfFpCmH",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    }
+  ],
+  "passed": false,
+  "chain": "ee929960"
+}

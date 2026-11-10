@@ -1,0 +1,426 @@
+{
+  "binary_sha256": "54f4d7dfa52580276bb1866f5826831915dab7d491dfbc2318b5e3434450cfe9",
+  "binary_version": "sui 1.85.0-a4f70b9e6639-dirty",
+  "checks": [
+    {
+      "check": "publish_zero_sui",
+      "digest": "CJQGNmXBpE4sP69Shkknj1gxBB2uXx2W5CW45HoFxQ8d",
+      "epoch": "1",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "dry_run_unmetered",
+      "digest": null,
+      "epoch": "1",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "move_payment_unmetered",
+      "digest": "G1ycZkqFA5twQULzEUhWRx2oQBGkWgoSyWfedRRQjJje",
+      "epoch": "1",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "duplicate_reference_abort",
+      "digest": null,
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "failure",
+        "error": "MoveAbort(MoveLocation { module: ModuleId { address: b0a426523a934c9f3394a8e8016d1a44ae580f6c6e64e6818c44192b988deca0, name: Identifier(\"workload\") }, function: 1, instruction: 10, function_name: Some(\"pay\") }, 1) in command 0"
+      }
+    },
+    {
+      "check": "serialized_signed_shared_call",
+      "digest": "9ymQFd51D8Hfx74arFjFsrM6K6Yt7taK9tN4DeCsp5VQ",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "exact_signed_retry",
+      "digest": "9ymQFd51D8Hfx74arFjFsrM6K6Yt7taK9tN4DeCsp5VQ",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "create_owned",
+      "digest": "AuqSNNwbjr1CgK6rCZgZVPsQ5ypQiKo6JtkHut8yvpog",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "mutate_owned",
+      "digest": "DRzTutkipwu2UE1yyWhsW1RZrWHDeUxCYMAdkbQpkWgY",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "transfer_owned",
+      "digest": "7XQsKGCcj2HFopfjptK4rNjS9G4SDCWptva3NB7HwBps",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "delete_owned",
+      "digest": "4XZw1AHZmLYk9QkEpNPMQznZtPyHxa2wMZzN879R9tXg",
+      "epoch": "2",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "upgrade_zero_sui",
+      "digest": "6SRq8HR8kGEsTnjQfQBYW9byCeVnUJFm2T3UkU4DGQRq",
+      "epoch": "4",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "epoch_probe",
+      "digest": "7ajZ6mTg3mPZ651wJ5TnRPGwCGmGZ7vKkfcxXJ84cbc6",
+      "epoch": "4",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "persisted_restart",
+      "digest": "ENLXDSuGt1CtkPxqLhWSk6dtuNxo2NdM8cgstna8TF4C",
+      "epoch": "4",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "explicit_coin_zero_price",
+      "digest": "7Ns5tCx94BxqNAzHYbhRq9Aws2LVLh98XYtH7gg8iUm5",
+      "epoch": "5",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_publish_common",
+      "digest": "HCZ3gwMY2sWW96yjgNmdwtMFv8kxaaJ1DgmHFFUkmf6x",
+      "epoch": "7",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_publish_coins",
+      "digest": "JCqSqLVzBFZW42ZnWFBtEjE8m3tMeg1M3eqSvjG7rUbH",
+      "epoch": "8",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_publish_registry",
+      "digest": "FMqaBDVCaGfCjefaqvsTY4kSZpxByjVXmp87YMKh9iGc",
+      "epoch": "9",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_publish_fundingandliquidation",
+      "digest": "AsE6q7RGrx1mvrhhGzUZFTkucfXPJfHGbSSj7P5PMpyJ",
+      "epoch": "10",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_funding_capability",
+      "digest": "HLnQrE39us1g2HM9TFfft7EWSZSijYu55UDawQ8onR3x",
+      "epoch": "10",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_funding_shard",
+      "digest": "81Yd8FP33RWBTw6TqKQHWusBzxNS9NCi63UNd2xhPU4j",
+      "epoch": "10",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_fund_institution",
+      "digest": "DXN7XVS1qWto2KbkoFsXyUDQymhybVWs4i2B1pRfSX9J",
+      "epoch": "10",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_duplicate_funding_abort",
+      "digest": null,
+      "epoch": "10",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "failure",
+        "error": "MoveAbort(MoveLocation { module: ModuleId { address: e49b3373b5c1ab76ee4366bbed470636507c208e038c08d1b38d37288ba6deef, name: Identifier(\"funding_logic\") }, function: 6, instruction: 7, function_name: Some(\"validate_funding_reference_in_shard\") }, 1001) in command 0"
+      }
+    },
+    {
+      "check": "zone_liquidation_capability",
+      "digest": "75Ey1fQ6fqFU1cXw47ebiKQs4Q9xXbRSuaffGRs8MxzP",
+      "epoch": "11",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_liquidate_institution",
+      "digest": "8FdxRRt15gsh9SVxmQmw3zHc5WHiPXocfzh4XQcffJ5S",
+      "epoch": "11",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    },
+    {
+      "check": "zone_transfer_remaining_balance",
+      "digest": "2RJBGDWvsxVBjkPCxdtV7dCrpY1q9q4yNbmVHa3P5whe",
+      "epoch": "11",
+      "gas": {
+        "computationCost": "0",
+        "storageCost": "0",
+        "storageRebate": "0",
+        "nonRefundableStorageFee": "0"
+      },
+      "status": {
+        "status": "success"
+      }
+    }
+  ],
+  "passed": true,
+  "chain": {
+    "base58": "LUFUjnz5a5XtSGj8Se2EYef7zUL1q12ZtsvSFdm1ke1",
+    "hex": "04fcd8bc"
+  },
+  "sender": "0xf55792adf3574b878238124e743b4a334b58dfd21f6a66270a8e7bf7fcf24c6b",
+  "recipient": "0x8db172ef911423bf3bc18e9554ab0ee9f86c8b8214aa51c989ccccc083b5679f",
+  "gas_before": {
+    "gasCoins": [],
+    "addressMistBalance": 0,
+    "addressSuiBalance": "0.00"
+  },
+  "zone_contract_source_sha256": {
+    "src/common/sources/constants.move": "126d4afcbc22a088f06c40423a3c9afd013af6622f01bd4bfe60cedbdb3f5d97",
+    "src/common/sources/errors.move": "bf83ab34a09b611d1295428ee03770d692571cbd0dd5fe767b21d51a4a0b54a0",
+    "src/common/sources/validation.move": "df7e5e814c96141e2fcb753fdaf309789d2a22108ae79e43dcf10a594f201e9e",
+    "src/coins/sources/zonecoin.move": "1fca97f20f2937e2bd39abb9baadf93ba4e730b024bba8c147c0bfed0122427e",
+    "src/registry/sources/currencyRegistry/caps.move": "7fa47067e3fe7918a4134121a49256763a9c2dfa235ff4fdf629e49a83400683",
+    "src/registry/sources/currencyRegistry/data.move": "8cef30469240ff4b9777adc1747db3d637da223b85a9675feb1cd840611184fd",
+    "src/registry/sources/currencyRegistry/error.move": "7d20592d2d5687d1c2df23279e2e98fa5e38d3bc05d8bf10a12c168f9c409e91",
+    "src/registry/sources/currencyRegistry/events.move": "793069956e82e06cac3460fff4880f3a54d05e3621538ba3b3a90da1ecc83204",
+    "src/registry/sources/currencyRegistry/logic.move": "24079e9a6b0cd1b81347aea9fd367e5d0bf4c13f08e0baaad47b726ee4b65835",
+    "src/registry/sources/currencyRegistry/main.move": "8b7865a209452df08431dd0775d79d4af4c9e709aa9b2f687e7019000bf6aed8",
+    "src/registry/sources/feeManagement/caps.move": "8cc5d6ff00e4abc9d7005c43e642e7762e3ac1e4a3e5b515a494f561bb8e230d",
+    "src/registry/sources/feeManagement/data.move": "cf7ee1703f8909b79b811da8a22cda57c3d353882e086ff121ada839e457335c",
+    "src/registry/sources/feeManagement/error.move": "d83e84a422499e4a618359eef5cd93f203cbb1a2c65cd65e9f1b2cbfc3870b75",
+    "src/registry/sources/feeManagement/events.move": "75bbb05a1e2902340751cd03279a1da103447d9700f27f590c8971224cd1ec3a",
+    "src/registry/sources/feeManagement/logic.move": "c96a9ef97c5531cf0068794383822c882c77dfe22bba4fcd59799f944e4cd5f5",
+    "src/registry/sources/feeManagement/main.move": "59f944c8781cfecd63823b2e22fd54a3af39a04cb86df6a6cabf568d1ca99cb9",
+    "src/registry/sources/institutionRegistry/caps.move": "84699f22d7f3949f4afcabeea59c7011042ea38bc56820599facd7df79fbb73c",
+    "src/registry/sources/institutionRegistry/data.move": "6374a14c65d3046bbfa51726b1497cdeb9b363fb8161f1b5f6e607c4c9e24b6e",
+    "src/registry/sources/institutionRegistry/events.move": "2015e32c47494224270ce8c5a529fbbd4fa94f729a5d26d703b156b8200bea57",
+    "src/registry/sources/institutionRegistry/logic.move": "fdb3f713e831913f8acee72de1748a9d6a562e6f8ed6002e71122ca0b2a10164",
+    "src/registry/sources/institutionRegistry/main.move": "8fd0e4a153a8a915ed3f835789a54e4b68465a02ce04f2163f943fe59a5df0da",
+    "src/registry/sources/rsaRegistry/data.move": "0a3c1fe85c32c0613105080cb407077e8a7add0ff1b503b40a9beaec149c78ac",
+    "src/registry/sources/rsaRegistry/error.move": "c311df0b664e623efef49953816e1653168bda26d1e870e65a07819a1f5a162e",
+    "src/registry/sources/rsaRegistry/events.move": "99ad93da2cf9df408452f6f414fe9765eb1e97170988712bd8bac0b6e4889324",
+    "src/registry/sources/rsaRegistry/logic.move": "d56d8e33f118f20e06966fab08b2ce3470b79e72992ecc540ea34250c3a8651c",
+    "src/registry/sources/rsaRegistry/main.move": "630b1e4d1431a1715a0b2a4013634329098454a39d7cc0e18aa39aa64cce38ac",
+    "src/registry/sources/terminalRegistry/data.move": "ea2918f05f9a85ae0c0df854c6dd695db1416c2960b30f11466234c2074fde20",
+    "src/registry/sources/terminalRegistry/error.move": "24c160719adf124a523863e27c1b76aacb38aeeb57c6d9bb5d763f110dd9dd86",
+    "src/registry/sources/terminalRegistry/events.move": "cabdc3d169f9b8684743606884f123e2e40c0fb36808f6c646836206b9501e21",
+    "src/registry/sources/terminalRegistry/logic.move": "e23975d3ccab1c2dd50690dd0c958dcf35c2e22013c6cccb46f36740d866a60d",
+    "src/registry/sources/terminalRegistry/main.move": "d357e724f7a3fc5e6a8318161f1b1d3c12e049c1ecbfc2428f9f68aa922bba9c",
+    "src/fundingandliquidation/sources/funding/caps.move": "74dba3e4a500344624a9f814320bd093cae12897540f242cd21e6766472dc64c",
+    "src/fundingandliquidation/sources/funding/data.move": "6632b55bea192be4610712ef29177891d2a06d61c028f5f4aa7aae88cb5510d2",
+    "src/fundingandliquidation/sources/funding/error.move": "8f078d8cc800c52a6b34eb1ed137d694cb02034b4844af79382fa9d477206591",
+    "src/fundingandliquidation/sources/funding/events.move": "7ad942b1551c3db1fb79331a1b02a6bdd0d6737a73717c37ded7d3daa0032247",
+    "src/fundingandliquidation/sources/funding/logic.move": "64fd77c22c465795289e03ed6de62613cf480cec27271e94b3d1027fefdc41d5",
+    "src/fundingandliquidation/sources/funding/main.move": "3524a84b32b04b27f6569b033b798be258069f0336d24b424e309a08bebf7a0b",
+    "src/fundingandliquidation/sources/liquidation/caps.move": "e4a1efbfd1c9effc2ce14b47319b351b3b8dcb9a6ad2d49faa8045d1fe1e0c89",
+    "src/fundingandliquidation/sources/liquidation/data.move": "8819f3aabe082e7bf03be4b63273e3b8c64b78d06026dcec83708284adad3f62",
+    "src/fundingandliquidation/sources/liquidation/error.move": "47bcce43c813937a2d34966bc79ad9a0da6696f36c8b613dea2454d3d510fe91",
+    "src/fundingandliquidation/sources/liquidation/events.move": "53cab2bed2481824a7787b4f0a708bfa9296638ba59e844561e0a3224d3e828f",
+    "src/fundingandliquidation/sources/liquidation/logic.move": "49fe38a833d5b480a7b29f1a5bc798c92a3b7d5779ba6bdac5a43a5380e38fdc",
+    "src/fundingandliquidation/sources/liquidation/main.move": "eadbecbc27569b942814b8aad1bb72ae5678823f12656a7b70367a2ef7d17f2a"
+  },
+  "zone_packages": {
+    "common": "0x0afaaeedeffd86d2cdbfa7c872b54fd4618444e79d979c2756fa852775c04897",
+    "coins": "0x8724bcfda0f0c3d131d97a6cb6508765cd56205a3f9795ecef59e799e806fa0b",
+    "registry": "0x3c1e7e8fc029e0753ab8380be7701f3a0fa95169450b93593662117ba7460303",
+    "fundingandliquidation": "0xe49b3373b5c1ab76ee4366bbed470636507c208e038c08d1b38d37288ba6deef"
+  },
+  "gas_after": {
+    "gasCoins": [],
+    "addressMistBalance": 0,
+    "addressSuiBalance": "0.00"
+  }
+}

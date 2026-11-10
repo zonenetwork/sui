@@ -1,7 +1,8 @@
 # Zone unmetered gasless port
 
-Status: unreleased. Fresh-network qualification is in progress; see the evidence
-record below for completed checks and remaining boundaries.
+Status: unreleased; fresh-network functional qualification passed on 2026-11-10.
+See the [qualification evidence](zone-gasless-evidence/README.md) for exact source,
+artifact identities, independent execution, failed attempts and remaining boundaries.
 
 The implementation owner is the Sui fork. The base is updated `main` at
 `a4f70b9e6639587a2bac63a1684097b74bbdcefd`. The behavioral reference is the local
@@ -157,15 +158,22 @@ protocol 143 regression, so the normal upstream test command remains valid.
 The authoring checks run in Ubuntu 24.04 under WSL on 2026-11-10. Rust 1.98.1
 matches the updated repository. Debug binaries are used for functional checks.
 
-- Protocol tests: 19 passed; 2 documentation examples ignored upstream. Only the
-  three new protocol 144 snapshots were added; earlier snapshots did not change.
+- Protocol tests: 19 passed in each of the Zone and standard builds; 2 documentation
+  examples ignored upstream in each run. Only the three new protocol 144 snapshots
+  were added; earlier snapshots did not change.
 - Focused gasless transaction tests: 5 passed.
-- Four-validator simulator suite: 2 passed, including paid protocol 143 behavior.
-  A final rerun covers the subsequent zero-price explicit-coin submission fix.
+- Four-validator simulator suite: 2 passed, including paid protocol 143 behavior,
+  explicit zero-price coins and gRPC resolution/BCS regression cases. Independent
+  execution with another simulator seed passed. The standard build ran its single
+  paid protocol 143 regression successfully with the private test feature disabled.
 - Standalone fresh network: zero-SUI publish, compute-heavy payment, dry-run,
   duplicate-reference abort, signed replay, create/mutate/transfer/delete, upgrade,
   two epoch transitions and persisted restart passed.
 - Local Zone Move sources: all four packages published; funding, duplicate-reference
   abort, liquidation and transfer of the exact remaining balance passed with zero fees.
-- Final scoped lint, reference-baseline comparison and independent assessment are
-  pending. There is no CI, deployment or image-build claim in this record.
+- Scoped implementation/test Clippy and formatting passed. Independent review found
+  no unresolved product findings after the fixes and repeated runtime checks.
+- The untouched local reference passed core gasless cases; its post-restart
+  transaction timed out. This baseline limitation is retained in the evidence;
+  the candidate's restart checks passed in author and independent runs.
+- There is no CI, deployment or image-build claim in this record.
