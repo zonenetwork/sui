@@ -84,16 +84,43 @@ class Network:
         if self.log:
             self.log.close()
 
-    def wait_for_object(self, object_id):
+    def wait_for_object(self, object_id, predicate=lambda _: True):
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
             if self.proc.poll() is not None:
                 raise RuntimeError("Network stopped while recovering")
             try:
-                return self.command("object", object_id, timeout=10)
+                object_ = self.command("object", object_id, timeout=10)
+                if predicate(object_):
+                    return object_
             except (RuntimeError, ValueError, subprocess.TimeoutExpired):
-                time.sleep(1)
+                pass
+            time.sleep(1)
         raise TimeoutError("Fullnode did not recover the expected object")
+
+    def connect(self, alias):
+        rpc = f"http://127.0.0.1:{self.port}"
+        deadline = time.monotonic() + 90
+        last_error = ""
+        while time.monotonic() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeError("Network exited before RPC readiness")
+            try:
+                environments = self.command("envs", timeout=10)[0]
+                existing = next((env for env in environments if env["alias"] == alias), None)
+                if existing:
+                    assert existing["rpc"] == rpc, "Saved environment points to another network"
+                    self.command("switch", "--env", alias, timeout=10)
+                    chain = self.command("chain-identifier", timeout=10)
+                    self.command("object", "0x6", timeout=10)
+                    return chain
+                added = self.command("new-env", "--alias", alias, "--rpc", rpc,
+                                     allow_error=True, timeout=10)
+                last_error = added.stderr + added.stdout
+            except (RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
+                last_error = str(error)
+            time.sleep(1)
+        raise TimeoutError("Fullnode RPC did not become ready: " + last_error[-1500:])
 
     def check_tx(self, label, response, success=True):
         effects = response["effects"]
@@ -190,18 +217,10 @@ def main():
             subprocess.run([str(sui), "genesis", "--working-dir", str(network.config),
                             "--committee-size", "4", "--epoch-duration-ms", "30000"],
                            stdout=log, stderr=subprocess.STDOUT, check=True, timeout=120)
+        client_config = network.config / "client.yaml"
+        client_config.write_text(client_config.read_text().replace(":9000", f":{args.rpc_port}"))
         network.start()
-        deadline = time.monotonic() + 90
-        while True:
-            added = network.command("new-env", "--alias", "zone-smoke", "--rpc",
-                                    f"http://127.0.0.1:{args.rpc_port}", allow_error=True, timeout=10)
-            if added.returncode == 0:
-                break
-            if time.monotonic() >= deadline:
-                raise RuntimeError("Fullnode never committed its first checkpoint: " + added.stdout)
-            time.sleep(1)
-        network.command("switch", "--env", "zone-smoke")
-        report["chain"] = network.command("chain-identifier")
+        report["chain"] = network.connect("zone-smoke")
         genesis_sender = network.command("active-address")
         # Deliberately discard recovery phrases; neither account receives genesis SUI.
         sender = network.command("new-address", "ed25519", "zone-smoke-sender")["address"]
@@ -280,7 +299,7 @@ def main():
             raise TimeoutError("Network did not cross two epochs")
         network.stop()
         network.start()
-        network.wait_for_object(counter)
+        network.wait_for_object(counter, lambda o: int(o["content"]["value"]) == 501)
         assert counter_value() == 501
         network.check_tx("persisted_restart", call("shared_only", counter, 1))
         assert counter_value() == 502

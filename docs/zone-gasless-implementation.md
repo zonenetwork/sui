@@ -72,7 +72,10 @@ gas meter. The upstream public gasless transfer allowlist, 16 KiB special size
 limit, minimum remaining token balance and special 300 TPS limiter do not govern
 Zone mode. Normal structural limits, signature and ownership checks, bytecode
 verification, atomic aborts, replay protection, overload and consensus protections
-remain active. No sponsor account, gas faucet or user SUI top-up is needed.
+remain active. Execution limits selected by metering status, including effect-size
+and written-object limits, use upstream's unmetered/system thresholds; they are not
+the paid user-transaction thresholds. No sponsor account, gas faucet or user SUI
+top-up is needed.
 
 New user objects have zero storage rebate; successful and failed execution report
 zero computation/storage fees. This implementation qualifies **new genesis** only.
