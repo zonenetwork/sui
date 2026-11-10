@@ -1,0 +1,27 @@
+# Independent gasless review
+
+Reviewed final candidate: `670d397ea883746d0caf7d81464f1b85427685ee`, in the clean managed checkout `C:/Users/wonawunmi.ZONENETWORK/.codex/worktrees/sui-unmetered-review/upstream`. Product code is unchanged from `60dd91a83da976f8c86e527591503f8b3b897772`; `4c81ede3d94794094174b5008d8759b3228c94df` changes only harness readiness and documentation, and the final commit records qualification evidence. Base: `a4f70b9e6639587a2bac63a1684097b74bbdcefd`. Reference: local `C:/zone/zone.sui`, `50ba71a663770e37da34234cbb36f52eb61f38e2`. No remote gasless branch used.
+
+## Findings and disposition
+
+- Resolved: private gRPC simulation previously entered paid estimation for explicit gas objects with omitted budget. Private simulation now bypasses estimation and unresolved private gas defaults are zero. Explicit-coin selection on/off and BCS preservation assertions pass independently under simulator seed 2.
+- Resolved: the private-network test previously ran without the Zone feature. The e2e crate now explicitly gates it behind its `zone-gasless` feature; the paid protocol 143 test remains available by default. The reviewer inspected `simtest-default.log`: exactly the paid protocol 143 case ran and passed (1/1).
+- Resolved: the standalone harness could persist an environment alias after CLI failure, then loop on duplicate alias. The final harness verifies alias/RPC ownership, selects the correct endpoint, and waits for chain/clock readiness. Independent rerun passes. Original failing run 02 is retained.
+- Clarified: truly unmetered execution uses upstream system/unmetered thresholds where effect and written-object limits depend on metering status. The documentation no longer implies paid user thresholds remain.
+
+No additional blocking product findings remain from review. Reviewed protocol isolation and history, real unmetered status, canonical empty-gas validation, explicit gas object validation, signature/ownership/replay paths, asset conservation, zero storage rebates for new genesis, driver submission/recovery options, CLI and gRPC construction, epoch/restart behavior, test feature gating, Docker feature selection, and user-facing limitations.
+
+## Independent execution
+
+The reviewer executed critical checks from the fresh review checkout using hash-verified author-built artifacts. All 24 changed product/test/Docker files were independently compared against the Linux build source and match after explicit CRLF-to-LF normalization; `review-source-hashes-normalized.json` records each comparison and both raw hashes. This is independent execution, not an independent full Rust rebuild.
+
+1. `review-smoke-01.log`: initial candidate standalone fresh-network suite passed, including actual local Zone contracts. Earlier evidence retained.
+2. `review-smoke-02.log`: reproduced the environment-alias harness failure; no product-node failure observed. Evidence retained.
+3. `review-smoke-03.log`: final checked-in harness passed against a new four-validator/fullnode network on owned port 18947, work directory `/home/wonawunmi/codex-sui-gasless-20261110/review-network-03`. Report `report.json` contains 25 passed checks, all four gas fields zero, zero-SUI sender before and after, publish/upgrade, compute-heavy execution, atomic abort checks, exact signed retry, owned-object lifecycle, persisted restart, explicit zero-price gas coin, all four local Zone packages, funding, duplicate funding rejection, liquidation and exact remaining-balance transfer. Observed transaction epochs span 1 through 11. Chain identifier `04fcd8bc`. Sui artifact SHA256 `54f4d7dfa52580276bb1866f5826831915dab7d491dfbc2318b5e3434450cfe9`.
+4. `review-sim-seed2.log`: `MSIM_TEST_SEED=2 TMPDIR=/home/wonawunmi/codex-sui-gasless-20261110/review-sim-seed2-tmp /home/wonawunmi/codex-sui-gasless-20261110/source/target/simulator/deps/zone_gasless_tests-f549a3ce153c6ce5 --exact zone_unmetered_fresh_network --nocapture` passed: 1 passed, 0 failed, 79.23 seconds. Normal cryptography retained. Artifact SHA256 `d46e531e1c247a19636cb361c275906bf05ce77fedeac08c7f9c6f04440c2422`.
+
+Native command: `python3 /mnt/c/Users/wonawunmi.ZONENETWORK/.codex/worktrees/sui-unmetered-review/upstream/scripts/zone-gasless-smoke.py --sui /home/wonawunmi/codex-sui-gasless-20261110/source/target/debug/sui --work-dir /home/wonawunmi/codex-sui-gasless-20261110/review-network-03 --rpc-port 18947 --zone-contracts /mnt/c/zone/zone.smartcontracts.sui`, under WSL Ubuntu-24.04 with task cargo/rustup paths and loopback proxy bypass.
+
+## Readiness boundary
+
+Independent review supports functional qualification of the local branch for a newly generated private network. The reviewer also inspected successful author logs for the final two-case Zone simulator, scoped implementation lint, dedicated e2e lint, feature-disabled one-case simulator, and feature-disabled protocol suite (19 passed, two upstream doctests ignored). The final committed evidence record is accurate; its independent network report and source comparison exactly match the reviewer's records. No required review check remains pending. This does not establish deployment, CI, container-image build, separate-host resilience, production capacity, existing-network rebate migration, the legacy .NET JSON-RPC SDK's compatibility, or end-to-end bank-credit delivery. The local reference's post-restart submission timeout remains disclosed and unestablished in cause; it is not counted as a full baseline pass. The runbook correctly makes these boundaries explicit.

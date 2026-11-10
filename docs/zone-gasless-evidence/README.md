@@ -26,6 +26,8 @@ debug functional-test artifacts, not published release images.
 | Standard protocol configuration | 19 passed; 2 upstream doctests ignored | Zone feature disabled |
 
 [Collected check summaries](checks.txt) retain the actual counts and local log names.
+The [final independent assessment](independent-review.md) closes the review findings
+and supports functional use on a newly generated private network.
 The [independent source comparison](independent-source-hashes.json) separately
 confirms that the reviewed product/test/Docker files match the tested Linux source
 after line-ending normalization. All 18 local reference feature files were rehashed
