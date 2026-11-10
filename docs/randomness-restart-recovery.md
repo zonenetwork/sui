@@ -1,6 +1,9 @@
 # Randomness mapping recovery after validator restart
 
-Status: candidate in preparation; not qualified for deployment.
+Status: focused local tests and a development restart recovery passed for the
+earlier candidate. Production checkpoint recovery remains incomplete. See
+[consensus replay performance](consensus-replay-performance.md) for the subsequent
+profiled replay bottleneck, parameter changes, and additional candidate fix.
 
 ## Objective and ownership
 
@@ -34,17 +37,19 @@ The broader scheduler rewrite in upstream `f0699cb902` is outside this patch.
 
 ## Evidence boundaries
 
-The incident handoffs are supplied observations, not independently inspected
-production evidence or authorization for node operations. Production image/source
-parity, the exact missing production key, development-network reproduction,
-production recovery and timing are unverified. Production operations belong to
-the human operators. No action on production validators is part of this work.
+The incident handoffs and production logs are operator-supplied observations, not
+authorization for node operations. The operator reports production binary
+`1.51.1-59e26ba5dc`; its startup scan completed in 210,315 ms with zero skips, but
+the builder was still waiting for consensus replay. The exact missing production
+key and full production recovery remain unverified. Production operations belong
+to the human operators. No action on production validators is part of this work.
 
 ## Source assumption check
 
-References below use the unmodified master base, so line numbers remain stable
-even where this patch inserts code. "Confirmed" concerns source behavior, not
-the supplied live incident observations.
+This table preserves the initial source audit and its then-unverified items.
+References use the unmodified master base, so line numbers remain stable even
+where this patch inserts code. Updated verification appears below. "Confirmed"
+concerns source behavior, not the supplied live incident observations.
 
 | ID | Finding | Base source evidence |
 | --- | --- | --- |
@@ -104,20 +109,27 @@ The exact missing key on the affected production validator is still unobserved.
 
 - Independent source diagnosis: supports the narrow prevention/recovery design;
   does not establish deployment readiness.
-- Rust parsing/formatting and patch whitespace: being checked locally.
-- Rust compilation/test execution: blocked locally before compiling sui-core.
-  Rust 1.85 and cached dependencies are present, but Windows lacks `link.exe` and
-  the C++ build tools. Local Ubuntu lacks Rust/Clang/CMake; dependency downloads
-  failed. No test is reported passed on that basis.
+- Local WSLC validation at `657fff2527ae`: all seven recovery regressions and
+  `cargo build --locked --release --bin sui-node` passed with Rust 1.85.1 on
+  Ubuntu 22.04. Earlier native Windows and dependency-download failures were
+  superseded by this local Linux build. This does not qualify a Docker image.
 - Regression tests authored: real authority execution inserts the mapping;
   absent mapping parks a waiter and recovery wakes it; repeated recovery inserts
   nothing; conflicting mappings and the execution watermark are preserved;
   missing transactions, pruned contents, foreign-epoch transactions and wrong
   transaction digests are handled without replacing the mapping; committed effects
   ahead of the checkpoint watermark are recovered before replay and on executor retry.
-- Live unpatched restart reproduction, patched restart and halted-network
-  recovery, rebuilt checkpoint digest equality, healthy-node epoch transition,
-  recovery timing and independent candidate assessment: pending.
+- A development validator running `59e26ba5dc` recovered 6,378 missing mappings
+  with zero skips, completed replay, and resumed checkpoint signing. A separate
+  proposal-propagation stall required a temporary operational override; its exact
+  original configuration was restored, and proposals, peer-accepted signatures,
+  and checkpoints advanced under the default threshold. That operational recovery
+  does not fix the separate long-outage propagation defect in source.
+- Independent source and development recovery assessments completed. Full
+  healthy-node epoch-transition qualification and an explicit rebuilt-digest
+  comparison remain outstanding; production has not resumed certification in
+  the supplied samples. Subsequent replay-lookup tests and their exact source
+  identity are recorded in the linked performance note.
 
 ## Qualification and operator considerations
 

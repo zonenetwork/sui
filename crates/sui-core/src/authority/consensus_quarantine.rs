@@ -813,6 +813,17 @@ impl ConsensusOutputQuarantine {
     }
 
     pub(super) fn pending_checkpoint_exists(&self, index: &CheckpointHeight) -> bool {
+        // Consensus outputs and their pending checkpoints have increasing heights.
+        // A new checkpoint is normally above the queue's highest height. Avoid
+        // scanning the growing replay backlog for every such duplicate check.
+        // An output without checkpoints has no upper bound, so retain the scan.
+        if self
+            .get_highest_pending_checkpoint_height()
+            .is_some_and(|highest| *index > highest)
+        {
+            return false;
+        }
+
         self.output_queue
             .iter()
             .any(|output| output.pending_checkpoint_exists(index))
@@ -1014,5 +1025,127 @@ where
 
     pub fn contains_key(&self, key: &K) -> bool {
         self.map.contains_key(key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::checkpoints::{PendingCheckpointInfo, PendingCheckpointV2Contents};
+    use prometheus::Registry;
+
+    fn quarantine() -> ConsensusOutputQuarantine {
+        ConsensusOutputQuarantine::new(0, EpochMetrics::new(&Registry::new()))
+    }
+
+    fn output(round: u64, heights: &[CheckpointHeight]) -> ConsensusCommitOutput {
+        let mut output = ConsensusCommitOutput::new(round);
+        for &height in heights {
+            output.insert_pending_checkpoint(PendingCheckpointV2::V2(
+                PendingCheckpointV2Contents {
+                    roots: vec![],
+                    details: PendingCheckpointInfo {
+                        timestamp_ms: round,
+                        last_of_epoch: false,
+                        checkpoint_height: height,
+                    },
+                },
+            ));
+        }
+        output
+    }
+
+    #[test]
+    fn pending_checkpoint_lookup_preserves_duplicates_and_gaps() {
+        let mut quarantine = quarantine();
+        assert!(!quarantine.pending_checkpoint_exists(&0));
+        quarantine.output_queue.push_back(output(10, &[20, 21]));
+        quarantine.output_queue.push_back(output(11, &[22]));
+        quarantine.output_queue.push_back(output(15, &[30, 31]));
+
+        for height in [20, 21, 22, 30, 31] {
+            assert!(quarantine.pending_checkpoint_exists(&height));
+        }
+        for height in [0, 19, 23, 29, 32, u64::MAX] {
+            assert!(!quarantine.pending_checkpoint_exists(&height));
+        }
+
+        // Committing a prefix removes both regular and randomness checkpoints.
+        quarantine.output_queue.pop_front();
+        assert!(!quarantine.pending_checkpoint_exists(&20));
+        assert!(!quarantine.pending_checkpoint_exists(&21));
+        assert!(quarantine.pending_checkpoint_exists(&22));
+        assert!(quarantine.pending_checkpoint_exists(&31));
+        while quarantine.output_queue.pop_front().is_some() {}
+        assert!(!quarantine.pending_checkpoint_exists(&31));
+    }
+
+    #[test]
+    fn pending_checkpoint_lookup_handles_outputs_without_checkpoints() {
+        let mut quarantine = quarantine();
+        quarantine.output_queue.push_back(output(9, &[]));
+        assert!(!quarantine.pending_checkpoint_exists(&20));
+        quarantine.output_queue.push_back(output(10, &[20, 21]));
+        quarantine.output_queue.push_back(output(11, &[]));
+
+        assert!(quarantine.pending_checkpoint_exists(&20));
+        assert!(quarantine.pending_checkpoint_exists(&21));
+        assert!(!quarantine.pending_checkpoint_exists(&22));
+        assert!(!quarantine.pending_checkpoint_exists(&u64::MAX));
+    }
+
+    #[test]
+    fn pending_checkpoint_lookup_matches_replay_backlog() {
+        let mut quarantine = quarantine();
+        for round in 0..10_000 {
+            let heights = if round % 2 == 0 {
+                vec![round * 2, round * 2 + 1]
+            } else {
+                vec![round * 2]
+            };
+            assert!(!quarantine.pending_checkpoint_exists(&(round * 2)));
+            quarantine.output_queue.push_back(output(round, &heights));
+        }
+
+        for height in [0, 1, 2, 3, 9999, 10_000, 19_998, 19_999, 20_000] {
+            let expected = quarantine
+                .output_queue
+                .iter()
+                .any(|output| output.pending_checkpoint_exists(&height));
+            assert_eq!(quarantine.pending_checkpoint_exists(&height), expected);
+        }
+    }
+
+    #[test]
+    #[ignore = "manual comparison of replay lookup cost at increasing backlog sizes"]
+    fn pending_checkpoint_lookup_benchmark() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        for size in [1_000, 10_000, 100_000] {
+            let mut quarantine = quarantine();
+            for round in 0..size {
+                quarantine
+                    .output_queue
+                    .push_back(output(round, &[round * 2, round * 2 + 1]));
+            }
+            let missing = size * 2;
+            let started = Instant::now();
+            for _ in 0..1_000 {
+                assert!(!black_box(&quarantine)
+                    .output_queue
+                    .iter()
+                    .any(|output| output.pending_checkpoint_exists(black_box(&missing))));
+            }
+            let linear = started.elapsed();
+            let started = Instant::now();
+            for _ in 0..1_000 {
+                assert!(!black_box(&quarantine).pending_checkpoint_exists(black_box(&missing)));
+            }
+            println!(
+                "backlog={size} lookups=1000 linear={linear:?} bounded={:?}",
+                started.elapsed()
+            );
+        }
     }
 }
