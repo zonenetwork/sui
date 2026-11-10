@@ -53,6 +53,9 @@ class Network:
         return decode_json(result.stdout) if json_output else result.stdout
 
     def start(self):
+        with socket.socket() as available:
+            available.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            available.bind(("127.0.0.1", self.port))
         self.log = (self.root / f"network-{len(self.records)}.log").open("w")
         self.proc = subprocess.Popen(
             [self.sui, "start", "--network.config", str(self.config),
@@ -80,6 +83,17 @@ class Network:
                 self.proc.wait()
         if self.log:
             self.log.close()
+
+    def wait_for_object(self, object_id):
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeError("Network stopped while recovering")
+            try:
+                return self.command("object", object_id, timeout=10)
+            except (RuntimeError, ValueError, subprocess.TimeoutExpired):
+                time.sleep(1)
+        raise TimeoutError("Fullnode did not recover the expected object")
 
     def check_tx(self, label, response, success=True):
         effects = response["effects"]
@@ -180,7 +194,7 @@ def main():
         deadline = time.monotonic() + 90
         while True:
             added = network.command("new-env", "--alias", "zone-smoke", "--rpc",
-                                    f"http://127.0.0.1:{args.rpc_port}", allow_error=True)
+                                    f"http://127.0.0.1:{args.rpc_port}", allow_error=True, timeout=10)
             if added.returncode == 0:
                 break
             if time.monotonic() >= deadline:
@@ -266,6 +280,7 @@ def main():
             raise TimeoutError("Network did not cross two epochs")
         network.stop()
         network.start()
+        network.wait_for_object(counter)
         assert counter_value() == 501
         network.check_tx("persisted_restart", call("shared_only", counter, 1))
         assert counter_value() == 502

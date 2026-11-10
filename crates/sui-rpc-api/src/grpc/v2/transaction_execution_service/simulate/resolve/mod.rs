@@ -70,11 +70,16 @@ pub fn resolve_transaction(
     enforce_ptb_structural_limits(protocol_config, &ptb.inputs, &commands)?;
 
     let mut called_packages = called_packages(service, protocol_config, &commands)?;
+    let (default_gas_price, default_gas_budget) = if protocol_config.gasless_transactions() {
+        (0, 0)
+    } else {
+        (reference_gas_price, protocol_config.max_tx_gas())
+    };
     resolve_unresolved_transaction(
         service,
         &mut called_packages,
-        reference_gas_price,
-        protocol_config.max_tx_gas(),
+        default_gas_price,
+        default_gas_budget,
         sender,
         &ptb.inputs,
         commands,

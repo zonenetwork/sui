@@ -130,7 +130,7 @@ regression. Simulator tests use the repository's normal cryptography.
 cargo test --locked -p sui-protocol-config --features zone-gasless
 cargo test --locked -p sui-types --test zone_gasless --features sui-protocol-config/zone-gasless
 bash scripts/simtest/cargo-simtest simtest -p sui-e2e-tests --test zone_gasless_tests \
-  --features sui-protocol-config/zone-gasless --test-threads 1
+  --features zone-gasless --test-threads 1
 python3 scripts/zone-gasless-smoke.py --sui target/release/sui \
   --work-dir /tmp/zone-gasless-UNIQUE --rpc-port 18945 \
   --zone-contracts /path/to/local/zone.smartcontracts.sui
@@ -144,6 +144,10 @@ stops and restarts its own network with persisted data, checks the state and wri
 Keep generated keystores private; share the sanitized report rather than the
 network directory. This is functional qualification, not a production throughput
 or availability benchmark.
+
+The e2e crate's `zone-gasless` feature propagates the protocol feature and enables
+the private-network test. Without it the same test target runs only the paid
+protocol 143 regression, so the normal upstream test command remains valid.
 
 ## Evidence record
 

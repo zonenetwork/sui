@@ -119,6 +119,20 @@ pub fn simulate_transaction(
 
     let perform_gas_selection = request.do_gas_selection() && checks.enabled();
     let simulation_result = 'simulate: {
+        if protocol_config.gasless_transactions() {
+            // Private execution has no gas estimate or coin selection. Preserve explicit BCS,
+            // and resolve unsigned no-payment envelopes to the canonical zero-fee shape.
+            if perform_gas_selection && transaction_proto.bcs.is_none() {
+                if transaction.gas().is_empty() {
+                    transaction.gas_data_mut().price = 0;
+                    transaction.gas_data_mut().budget = 0;
+                }
+                configure_transaction_validity(service, offer_allowed_proposers, &mut transaction)?;
+            }
+            break 'simulate executor
+                .simulate_transaction(transaction.clone(), checks, false)
+                .map_err(simulation_error_to_rpc_error)?;
+        }
         // BCS transactions that are already in gasless shape (price=0, no payment) are simulated
         // as-is — the caller pre-built the transaction, so gas selection is not needed and the
         // priced flow must be skipped (it would fail with GasPriceUnderRGP for price=0).
@@ -943,7 +957,7 @@ fn is_gasless_candidate(
     protocol_config: &ProtocolConfig,
     service: &RpcService,
 ) -> Result<bool> {
-    if !protocol_config.enable_gasless() && !protocol_config.gasless_transactions() {
+    if !protocol_config.enable_gasless() {
         return Ok(false);
     }
     // When the caller passed a full BCS TransactionData, treat it as explicit — don't second-guess
@@ -967,10 +981,6 @@ fn is_gasless_candidate(
     let TransactionKind::ProgrammableTransaction(pt) = transaction.kind() else {
         return Ok(false);
     };
-    if protocol_config.gasless_transactions() {
-        // Ordinary input and Move checks run during simulation. No public-token allowlist applies.
-        return Ok(!pt.commands.iter().any(|cmd| cmd.is_gas_coin_used()));
-    }
     if pt.validate_gasless_transaction(protocol_config).is_err() {
         return Ok(false);
     }

@@ -1,28 +1,37 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use move_core_types::ident_str;
-use serde::Deserialize;
-use std::path::PathBuf;
 use sui_macros::sim_test;
-use sui_move_build::BuildConfig;
-use sui_protocol_config::{Chain, ProtocolConfig, ProtocolVersion};
 use sui_rpc_api::client::ExecutedTransaction;
-use sui_swarm_config::genesis_config::AccountConfig;
-use sui_types::SUI_FRAMEWORK_PACKAGE_ID;
-use sui_types::base_types::{ObjectID, SuiAddress};
+use sui_types::base_types::SuiAddress;
 use sui_types::effects::TransactionEffectsAPI;
-use sui_types::gas::GasCostSummary;
-use sui_types::move_package::UpgradePolicy;
-use sui_types::object::{Object, Owner};
+use sui_types::object::Object;
 use sui_types::programmable_transaction_builder::ProgrammableTransactionBuilder;
 use sui_types::transaction::{
-    Argument, Command, ObjectArg, SharedObjectMutability, TransactionData, TransactionDataAPI,
-    TransactionExpiration, TransactionKind,
+    Argument, Command, ObjectArg, TransactionData, TransactionExpiration, TransactionKind,
 };
 use test_cluster::TestCluster;
 use test_cluster::addr_balance_test_env::TestEnvBuilder;
 
+#[cfg(feature = "zone-gasless")]
+use {
+    move_core_types::ident_str,
+    serde::Deserialize,
+    std::path::PathBuf,
+    sui_move_build::BuildConfig,
+    sui_protocol_config::{Chain, ProtocolConfig, ProtocolVersion},
+    sui_swarm_config::genesis_config::AccountConfig,
+    sui_types::{
+        SUI_FRAMEWORK_PACKAGE_ID,
+        base_types::ObjectID,
+        gas::GasCostSummary,
+        move_package::UpgradePolicy,
+        object::Owner,
+        transaction::{SharedObjectMutability, TransactionDataAPI},
+    },
+};
+
+#[cfg(feature = "zone-gasless")]
 #[derive(Deserialize)]
 struct CounterContents {
     _id: ObjectID,
@@ -57,6 +66,7 @@ async fn tx(
     )
 }
 
+#[cfg(feature = "zone-gasless")]
 async fn execute(cluster: &TestCluster, data: &TransactionData) -> ExecutedTransaction {
     let result = cluster.sign_and_execute_transaction(data).await;
     assert_eq!(
@@ -85,6 +95,7 @@ async fn created(cluster: &TestCluster, result: &ExecutedTransaction, suffix: &s
     panic!("Missing created object {suffix}");
 }
 
+#[cfg(feature = "zone-gasless")]
 async fn owned(cluster: &TestCluster, id: ObjectID) -> ObjectArg {
     ObjectArg::ImmOrOwnedObject(
         cluster
@@ -95,6 +106,7 @@ async fn owned(cluster: &TestCluster, id: ObjectID) -> ObjectArg {
     )
 }
 
+#[cfg(feature = "zone-gasless")]
 fn shared(object: &Object) -> ObjectArg {
     let Owner::Shared {
         initial_shared_version,
@@ -109,11 +121,13 @@ fn shared(object: &Object) -> ObjectArg {
     }
 }
 
+#[cfg(feature = "zone-gasless")]
 async fn counter(cluster: &TestCluster, id: ObjectID) -> CounterContents {
     let object = cluster.get_object_from_fullnode_store(&id).await.unwrap();
     bcs::from_bytes(object.data.try_as_move().unwrap().contents()).unwrap()
 }
 
+#[cfg(feature = "zone-gasless")]
 #[sim_test]
 async fn zone_unmetered_fresh_network() {
     let config = ProtocolConfig::get_for_version(ProtocolVersion::new(144), Chain::Unknown);
@@ -495,6 +509,43 @@ async fn zone_unmetered_fresh_network() {
     ];
     zero_price.gas_data_mut().price = 0;
     zero_price.gas_data_mut().budget = 0;
+    for gas_selection in [false, true] {
+        let mut unresolved = sui_rpc::proto::sui::rpc::v2::Transaction::from(zero_price.clone());
+        unresolved.bcs = None;
+        unresolved.digest = None;
+        unresolved.gas_payment_mut().price = None;
+        unresolved.gas_payment_mut().budget = None;
+        let result = rpc
+            .simulate_transaction(
+                sui_rpc::proto::sui::rpc::v2::SimulateTransactionRequest::default()
+                    .with_transaction(unresolved)
+                    .with_do_gas_selection(gas_selection),
+            )
+            .await
+            .unwrap()
+            .into_inner();
+        let resolved = result.transaction().transaction();
+        assert_eq!(resolved.gas_payment().price(), 0);
+        assert_eq!(resolved.gas_payment().budget(), 0);
+        assert_eq!(resolved.gas_payment().objects.len(), 1);
+    }
+    let encoded = bcs::to_bytes(&zero_price).unwrap();
+    let mut bcs_transaction = sui_rpc::proto::sui::rpc::v2::Transaction::default();
+    bcs_transaction.bcs =
+        Some(sui_rpc::proto::sui::rpc::v2::Bcs::default().with_value(encoded.clone()));
+    let result = rpc
+        .simulate_transaction(
+            sui_rpc::proto::sui::rpc::v2::SimulateTransactionRequest::default()
+                .with_transaction(bcs_transaction)
+                .with_do_gas_selection(true),
+        )
+        .await
+        .unwrap()
+        .into_inner();
+    assert_eq!(
+        result.transaction().transaction().bcs().value(),
+        encoded.as_slice()
+    );
     execute(cluster, &zero_price).await;
     assert_eq!(env.get_coin_balance(gas[0].0).await, 998);
 
