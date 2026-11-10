@@ -143,7 +143,7 @@ pub mod checked {
         reference_gas_price: u64,
         config: &ProtocolConfig,
     ) -> Option<(u64, u64)> {
-        if gas_data.is_unmetered() || kind.is_system_tx() {
+        if gas_data.is_unmetered() || kind.is_system_tx() || config.gasless_transactions() {
             return None;
         }
         if config.enable_gasless() && is_gasless_transaction(gas_data, kind) {

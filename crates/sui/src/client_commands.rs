@@ -3410,6 +3410,30 @@ fn format_balance(
     format!("{whole}.{fractional}{suffix}")
 }
 
+async fn zone_gasless_enabled(client: &Client) -> Result<bool, anyhow::Error> {
+    Ok(client
+        .get_protocol_config(None)
+        .await?
+        .feature_flags
+        .get("gasless_transactions")
+        .copied()
+        .unwrap_or(false))
+}
+
+async fn zone_transaction_expiration(
+    client: &Client,
+) -> Result<TransactionExpiration, anyhow::Error> {
+    let epoch = client.clone().get_latest_checkpoint().await?.epoch;
+    Ok(TransactionExpiration::ValidDuring {
+        min_epoch: Some(epoch),
+        max_epoch: Some(epoch.saturating_add(1)),
+        min_timestamp: None,
+        max_timestamp: None,
+        chain: client.get_chain_identifier().await?,
+        nonce: rand::random(),
+    })
+}
+
 /// Helper function to reduce code duplication for executing dry run
 pub async fn execute_dry_run(
     context: &mut WalletContext,
@@ -3425,7 +3449,7 @@ pub async fn execute_dry_run(
         Some(gas_budget) => gas_budget,
         None => max_gas_budget(&client).await?,
     };
-    let tx_data = TransactionData::new_with_gas_coins_allow_sponsor(
+    let mut tx_data = TransactionData::new_with_gas_coins_allow_sponsor(
         kind,
         signer,
         gas_payment,
@@ -3433,6 +3457,11 @@ pub async fn execute_dry_run(
         gas_price,
         sponsor.unwrap_or(signer),
     );
+    if tx_data.gas().is_empty() && zone_gasless_enabled(&client).await? {
+        tx_data.gas_data_mut().price = 0;
+        tx_data.gas_data_mut().budget = 0;
+        *tx_data.expiration_mut() = zone_transaction_expiration(&client).await?;
+    }
     debug!("Executing dry run");
     let response = client
         .simulate_transaction(&tx_data, true, false)
@@ -3708,13 +3737,15 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
         "Cannot specify both flags: --serialize-unsigned-transaction and --serialize-signed-transaction."
     );
 
-    let gas_price = if let Some(gas_price) = gas_price {
+    let client = context.grpc_client()?;
+    let zone_gasless = zone_gasless_enabled(&client).await?;
+    let gas_price = if zone_gasless && gas_payment.is_empty() {
+        0
+    } else if let Some(gas_price) = gas_price {
         gas_price
     } else {
         context.get_reference_gas_price().await?
     };
-
-    let client = context.grpc_client()?;
 
     let signer = sender.unwrap_or(signer);
 
@@ -3746,6 +3777,7 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
     }
 
     let gas_budget = match gas_budget {
+        _ if zone_gasless => 0,
         Some(gas_budget) => gas_budget,
         None => {
             debug!("Estimating gas budget");
@@ -3768,7 +3800,9 @@ pub(crate) async fn dry_run_or_execute_or_serialize(
 
     let gas_owner = gas_sponsor.unwrap_or(signer);
 
-    let (gas_payment, gas_budget, expiration) = if !gas_payment.is_empty() {
+    let (gas_payment, gas_budget, expiration) = if zone_gasless && gas_payment.is_empty() {
+        (vec![], 0, zone_transaction_expiration(&client).await?)
+    } else if !gas_payment.is_empty() {
         (gas_payment, gas_budget, TransactionExpiration::None)
     } else {
         select_gas_with_fullnode(&client, signer, &tx_kind, gas_owner, gas_budget, gas_price)
@@ -3875,7 +3909,7 @@ async fn execute_dev_inspect(
     let client = context.grpc_client()?;
 
     let max_gas_budget = max_gas_budget(&client).await?;
-    let tx = TransactionData::new_with_gas_coins_allow_sponsor(
+    let mut tx = TransactionData::new_with_gas_coins_allow_sponsor(
         tx_kind,
         signer,
         gas_objects,
@@ -3883,6 +3917,11 @@ async fn execute_dev_inspect(
         gas_price,
         gas_sponsor.unwrap_or(signer),
     );
+    if tx.gas().is_empty() && zone_gasless_enabled(&client).await? {
+        tx.gas_data_mut().price = 0;
+        tx.gas_data_mut().budget = 0;
+        *tx.expiration_mut() = zone_transaction_expiration(&client).await?;
+    }
 
     let result = client
         .simulate_transaction(&tx, !skip_checks.unwrap_or(false), false)

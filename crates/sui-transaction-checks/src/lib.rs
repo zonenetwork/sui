@@ -15,6 +15,7 @@ mod checked {
     use sui_types::error::{SuiResult, UserInputError, UserInputResult};
     use sui_types::executable_transaction::VerifiedExecutableTransaction;
     use sui_types::gas::{check_gas_budget_and_balance, check_gas_price};
+    use sui_types::gas_model::gas_common::{check_gas_data, check_gas_objects};
     use sui_types::metrics::BytecodeVerifierMetrics;
     use sui_types::object::ObjectPermission;
     use sui_types::transaction::{
@@ -178,7 +179,10 @@ mod checked {
         check_objects(transaction, input_objects, protocol_config)?;
         check_replay_protection(transaction, input_objects)?;
 
-        if protocol_config.enable_gasless() && transaction.is_gasless_transaction() {
+        if !protocol_config.gasless_transactions()
+            && protocol_config.enable_gasless()
+            && transaction.is_gasless_transaction()
+        {
             check_gasless_object_inputs(input_objects, protocol_config)?;
         }
 
@@ -349,7 +353,9 @@ mod checked {
         let gas_budget = transaction.gas_budget();
         let gas_price = transaction.gas_price();
         let gas_paid_from_address_balance = transaction.is_gas_paid_from_address_balance();
-        check_gas_price(gas_price, reference_gas_price, protocol_config)?;
+        if !protocol_config.gasless_transactions() {
+            check_gas_price(gas_price, reference_gas_price, protocol_config)?;
+        }
 
         // check balance and coins consistency
         // load all gas coins (skip coin reservations - they're not loaded as input objects)
@@ -379,6 +385,13 @@ mod checked {
             }
             (gas_objects, available_address_balance_gas)
         };
+
+        if protocol_config.gasless_transactions() {
+            // Explicit payment objects still must be real, owned SUI coins.
+            check_gas_objects(&gas_objects)?;
+            check_gas_data(&gas_objects, 0, 0, 0, 0)?;
+            return Ok(());
+        }
 
         check_gas_budget_and_balance(
             &gas_objects,

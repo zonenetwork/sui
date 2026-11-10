@@ -340,7 +340,7 @@ pub mod checked {
             debug_assert!(self.gas_status.storage_rebate() == 0);
             debug_assert!(self.gas_status.storage_gas_units() == 0);
 
-            if matches!(&self.payment, PaymentMetadata::Unmetered) {
+            if self.is_unmetered() {
                 return result;
             }
             let is_move_abort = matches!(

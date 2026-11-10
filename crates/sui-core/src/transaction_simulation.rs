@@ -109,7 +109,8 @@ pub fn simulate_transaction(
     // processing sees non-empty payment and doesn't create an address-balance
     // withdrawal for gas.
     // Skip mock gas for gasless transactions — they don't use gas coins.
-    let is_gasless = protocol_config.enable_gasless() && transaction.is_gasless_transaction();
+    let is_gasless = protocol_config.gasless_transactions()
+        || (protocol_config.enable_gasless() && transaction.is_gasless_transaction());
     let mock_gas_object = if allow_mock_gas_coin && transaction.gas().is_empty() && !is_gasless {
         let obj = Object::new_move(
             MoveObject::new_gas_coin(

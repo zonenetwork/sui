@@ -9,6 +9,10 @@ edition = "2024"
 [lints]
 workspace = true
 
+[features]
+# Every validator and full node of a Zone private network must use this profile.
+zone-gasless = []
+
 [dependencies]
 antithesis_sdk.workspace = true
 serde.workspace = true

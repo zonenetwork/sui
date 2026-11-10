@@ -67,6 +67,9 @@ pub trait AuthorityAggregatorUpdatable<A: Clone>: Send + Sync + 'static {
 /// Options for submitting a transaction.
 #[derive(Clone, Default, Debug)]
 pub struct SubmitTransactionOptions {
+    /// Set by the fullnode from its current protocol configuration, never from an RPC request.
+    /// Zone unmetered transactions use baseline submission priority even with explicit gas coins.
+    pub unmetered_gas: bool,
     /// When forwarding transactions on behalf of a client, this is the client's address
     /// specified for ddos protection.
     pub forwarded_client_addr: Option<SocketAddr>,
@@ -216,25 +219,27 @@ where
 
         let tx_data = request.transaction.as_ref().map(|t| t.transaction_data());
         // gas_price=0 for gasless; use 1 for baseline (RGP-equivalent) priority
-        let amplification_factor =
-            if request.ping_type.is_some() || tx_data.is_some_and(|d| d.is_gasless_transaction()) {
-                1
-            } else {
-                let tx_data = tx_data.unwrap();
-                let gas_price = tx_data.gas_price();
-                let reference_gas_price = self.authority_aggregator.load().reference_gas_price;
-                let amplification_factor = gas_price / reference_gas_price.max(1);
-                if amplification_factor == 0 {
-                    return Err(TransactionDriverError::ValidationFailed {
-                        error: UserInputError::GasPriceUnderRGP {
-                            gas_price,
-                            reference_gas_price,
-                        }
-                        .to_string(),
-                    });
-                }
-                amplification_factor
-            };
+        let amplification_factor = if options.unmetered_gas
+            || request.ping_type.is_some()
+            || tx_data.is_some_and(|d| d.is_gasless_transaction())
+        {
+            1
+        } else {
+            let tx_data = tx_data.unwrap();
+            let gas_price = tx_data.gas_price();
+            let reference_gas_price = self.authority_aggregator.load().reference_gas_price;
+            let amplification_factor = gas_price / reference_gas_price.max(1);
+            if amplification_factor == 0 {
+                return Err(TransactionDriverError::ValidationFailed {
+                    error: UserInputError::GasPriceUnderRGP {
+                        gas_price,
+                        reference_gas_price,
+                    }
+                    .to_string(),
+                });
+            }
+            amplification_factor
+        };
 
         let tx_type = request.tx_type();
         let ping_label = if request.ping_type.is_some() {

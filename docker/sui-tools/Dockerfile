@@ -22,7 +22,8 @@ COPY crates crates
 # GIT_REVISION declared late so SHA changes don't invalidate the COPYs above.
 ARG GIT_REVISION
 ENV GIT_REVISION=$GIT_REVISION
-RUN cargo build --locked --profile ${PROFILE} \
+ARG SUI_FEATURES=""
+RUN cargo build --locked --profile ${PROFILE} --features "${SUI_FEATURES}" \
     --bin sui-faucet \
     --bin sui-bridge \
     --bin bridge-indexer \
@@ -60,3 +61,5 @@ ARG BUILD_DATE
 ARG GIT_REVISION
 LABEL build-date=$BUILD_DATE
 LABEL git-revision=$GIT_REVISION
+ARG SUI_FEATURES=""
+LABEL sui.features=$SUI_FEATURES

@@ -38,7 +38,10 @@ pub use mysten_common::assert_reachable_simtest;
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;
+#[cfg(not(feature = "zone-gasless"))]
 const MAX_PROTOCOL_VERSION: u64 = 143;
+#[cfg(feature = "zone-gasless")]
+const MAX_PROTOCOL_VERSION: u64 = 144;
 
 const TESTNET_USDC: &str =
     "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC";
@@ -436,6 +439,7 @@ const MAINNET_USDB: &str =
 //              Configure explicit Move binary format encoding limits.
 //              Enable defer_owned_object_double_spend on all networks.
 // Version 143: Add and enable a new execution version.
+// Version 144: Enable Zone private-network unmetered transactions in the zone-gasless build.
 
 #[derive(Copy, Clone, Debug, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtocolVersion(u64);
@@ -1288,6 +1292,10 @@ struct FeatureFlags {
 
     #[serde(skip_serializing_if = "is_false")]
     enable_gasless: bool,
+
+    // Zone's private-network mode is distinct from upstream's bounded gasless transfers.
+    #[serde(skip_serializing_if = "is_false")]
+    gasless_transactions: bool,
 
     #[serde(skip_serializing_if = "is_false")]
     gasless_verify_remaining_balance: bool,
@@ -5002,6 +5010,13 @@ impl ProtocolConfig {
                 143 => {
                     cfg.execution_version = Some(5);
                     cfg.package_arena_size_in_bytes = Some(20_000_000);
+                }
+                #[cfg(feature = "zone-gasless")]
+                144 => {
+                    if chain == Chain::Unknown {
+                        cfg.feature_flags.gasless_transactions = true;
+                        cfg.gasless_max_tps = None;
+                    }
                 }
                 // Use this template when making changes:
                 //

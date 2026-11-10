@@ -4,6 +4,8 @@
 
 # Welcome to Sui
 
+This fork includes an opt-in private-network build for [Zone unmetered gasless transactions](docs/zone-gasless-implementation.md).
+
 [![Github release](https://img.shields.io/github/v/release/MystenLabs/sui.svg?sort=semver)](https://github.com/MystenLabs/sui/releases/latest)
 [![License](https://img.shields.io/github/license/MystenLabs/sui)](https://github.com/MystenLabs/sui/blob/main/LICENSE)
 

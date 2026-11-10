@@ -2581,6 +2581,26 @@ pub struct TransactionDataV1 {
 }
 
 impl TransactionData {
+    /// Construct a no-payment transaction for a Zone unmetered private network.
+    /// Shared-only and input-free transactions require a replay-protected expiration.
+    pub fn new_gasless(
+        kind: TransactionKind,
+        sender: SuiAddress,
+        expiration: TransactionExpiration,
+    ) -> Self {
+        Self::new_with_gas_data_and_expiration(
+            kind,
+            sender,
+            GasData {
+                payment: vec![],
+                owner: sender,
+                price: 0,
+                budget: 0,
+            },
+            expiration,
+        )
+    }
+
     pub fn as_v1(&self) -> &TransactionDataV1 {
         match self {
             TransactionData::V1(v1) => v1,
@@ -3667,7 +3687,24 @@ impl TransactionDataAPI for TransactionDataV1 {
             );
         }
 
-        if config.enable_accumulators()
+        if config.gasless_transactions() && self.gas().is_empty() {
+            fp_ensure!(
+                self.gas_data.price == 0 && self.gas_data.budget == 0,
+                UserInputError::Unsupported(
+                    "Zone no-payment transactions require zero gas price and budget".to_string()
+                )
+                .into()
+            );
+            if let TransactionKind::ProgrammableTransaction(pt) = &self.kind {
+                fp_ensure!(
+                    !pt.commands.iter().any(|cmd| cmd.is_gas_coin_used()),
+                    UserInputError::Unsupported(
+                        "Argument::GasCoin requires a gas payment object".to_string()
+                    )
+                    .into()
+                );
+            }
+        } else if config.enable_accumulators()
             && config.enable_address_balance_gas_payments()
             && self.is_gas_paid_from_address_balance()
         {
@@ -3807,7 +3844,7 @@ impl TransactionDataAPI for TransactionDataV1 {
                     )
                     .into()
                 );
-            } else {
+            } else if !config.gasless_transactions() {
                 let min_budget = minimum_gas_budget(config, self.gas_data.price);
                 fp_ensure!(
                     self.gas_data.budget >= min_budget,
@@ -3822,7 +3859,10 @@ impl TransactionDataAPI for TransactionDataV1 {
 
         self.kind().validity_check(config)?;
 
-        if config.enable_gasless() && self.is_gasless_transaction() {
+        if !config.gasless_transactions()
+            && config.enable_gasless()
+            && self.is_gasless_transaction()
+        {
             let TransactionKind::ProgrammableTransaction(pt) = &self.kind else {
                 debug_fatal!("gasless transaction is not a ProgrammableTransaction");
                 return Err(UserInputError::Unsupported(
@@ -4314,7 +4354,10 @@ impl SenderSignedData {
             .into()
         );
 
-        if context.config.enable_gasless() && tx_data.is_gasless_transaction() {
+        if !context.config.gasless_transactions()
+            && context.config.enable_gasless()
+            && tx_data.is_gasless_transaction()
+        {
             let gasless_max = context.config.get_gasless_max_tx_size_bytes();
             fp_ensure!(
                 tx_size as u64 <= gasless_max,

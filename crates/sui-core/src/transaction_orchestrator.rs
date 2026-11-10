@@ -127,6 +127,7 @@ where
         Inner::start_task_to_recover_txes_in_log(
             pending_tx_log.clone(),
             transaction_driver.clone(),
+            validator_state.clone(),
         );
 
         let td_allowed_submission_list = node_config
@@ -779,6 +780,11 @@ where
             .drive_transaction(
                 SubmitTxRequest::new_transaction(request.transaction.clone()),
                 SubmitTransactionOptions {
+                    unmetered_gas: self
+                        .validator_state
+                        .load_epoch_store_one_call_per_task()
+                        .protocol_config()
+                        .gasless_transactions(),
                     forwarded_client_addr: client_addr,
                     allowed_validators: self.td_allowed_submission_list.clone(),
                     blocked_validators: self.td_blocked_submission_list.clone(),
@@ -903,6 +909,7 @@ where
     fn start_task_to_recover_txes_in_log(
         pending_tx_log: Arc<WritePathPendingTransactionLog>,
         transaction_driver: Arc<TransactionDriver<A>>,
+        validator_state: Arc<AuthorityState>,
     ) {
         spawn_logged_monitored_task!(async move {
             if std::env::var("SKIP_LOADING_FROM_PENDING_TX_LOG").is_ok() {
@@ -922,6 +929,7 @@ where
                 .map(|tx| {
                     let pending_tx_log = pending_tx_log.clone();
                     let transaction_driver = transaction_driver.clone();
+                    let validator_state = validator_state.clone();
                     async move {
                         // TODO: ideally pending_tx_log would not contain VerifiedTransaction, but that
                         // requires a migration.
@@ -932,7 +940,13 @@ where
                         if let Err(err) = transaction_driver
                             .drive_transaction(
                                 SubmitTxRequest::new_transaction(tx),
-                                SubmitTransactionOptions::default(),
+                                SubmitTransactionOptions {
+                                    unmetered_gas: validator_state
+                                        .load_epoch_store_one_call_per_task()
+                                        .protocol_config()
+                                        .gasless_transactions(),
+                                    ..Default::default()
+                                },
                                 Some(Duration::from_secs(60)),
                             )
                             .await

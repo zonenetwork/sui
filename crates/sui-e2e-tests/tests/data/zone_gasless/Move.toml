@@ -1,0 +1,9 @@
+[package]
+name = "zone_gasless"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { local = "../../../../sui-framework/packages/sui-framework" }
+
+[addresses]
+zone_gasless = "0x0"

@@ -247,7 +247,8 @@ pub fn simulate_transaction(
         // coin, unless it already pays for gas from address balance. Simulating such a
         // transaction with a mock gas coin would charge storage for a coin that execution never
         // writes, against a budget that `estimate_gas_budget_from_gas_cost` estimated without it.
-        let allow_mock_gas_coin = !(perform_gas_selection
+        let allow_mock_gas_coin = !(protocol_config.gasless_transactions()
+            || perform_gas_selection
             || (checks.enabled()
                 && address_balance_pays_gas(service, &protocol_config, &transaction)));
         executor
@@ -942,7 +943,7 @@ fn is_gasless_candidate(
     protocol_config: &ProtocolConfig,
     service: &RpcService,
 ) -> Result<bool> {
-    if !protocol_config.enable_gasless() {
+    if !protocol_config.enable_gasless() && !protocol_config.gasless_transactions() {
         return Ok(false);
     }
     // When the caller passed a full BCS TransactionData, treat it as explicit — don't second-guess
@@ -966,6 +967,10 @@ fn is_gasless_candidate(
     let TransactionKind::ProgrammableTransaction(pt) = transaction.kind() else {
         return Ok(false);
     };
+    if protocol_config.gasless_transactions() {
+        // Ordinary input and Move checks run during simulation. No public-token allowlist applies.
+        return Ok(!pt.commands.iter().any(|cmd| cmd.is_gas_coin_used()));
+    }
     if pt.validate_gasless_transaction(protocol_config).is_err() {
         return Ok(false);
     }

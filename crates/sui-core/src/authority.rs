@@ -5253,7 +5253,10 @@ pub(crate) fn pre_object_load_checks(
 
     account_funds_read.check_amounts_available(&declared_withdrawals)?;
 
-    if protocol_config.gasless_verify_remaining_balance() && tx_data.is_gasless_transaction() {
+    if !protocol_config.gasless_transactions()
+        && protocol_config.gasless_verify_remaining_balance()
+        && tx_data.is_gasless_transaction()
+    {
         let min_amounts = sui_types::transaction::get_gasless_allowed_token_types(protocol_config);
         account_funds_read
             .check_remaining_amounts_after_withdrawal(&declared_withdrawals, &min_amounts)?;

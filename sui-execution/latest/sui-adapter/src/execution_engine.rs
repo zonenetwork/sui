@@ -100,8 +100,12 @@ pub(crate) mod checked {
     fn payment_kind(
         gas_data: &GasData,
         transaction_kind: &TransactionKind,
+        protocol_config: &ProtocolConfig,
     ) -> Result<PaymentKind, ExecutionError> {
-        if gas_data.is_unmetered() || transaction_kind.is_system_tx() {
+        if gas_data.is_unmetered()
+            || transaction_kind.is_system_tx()
+            || (protocol_config.gasless_transactions() && gas_data.payment.is_empty())
+        {
             return Ok(PaymentKind::unmetered());
         }
         if is_gasless_transaction(gas_data, transaction_kind) {
@@ -573,7 +577,7 @@ pub(crate) mod checked {
         );
         let tx_ctx = Rc::new(RefCell::new(tx_ctx));
 
-        let payment_kind = match payment_kind(&gas_data, &transaction_kind) {
+        let payment_kind = match payment_kind(&gas_data, &transaction_kind, protocol_config) {
             Ok(payment_kind) => payment_kind,
             Err(error) => {
                 return Outcome::BumpOnly {
